@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { createInstructorAction, updateInstructorAction, deleteInstructorAction } from "@/lib/actions/admin";
+import { createInstructorAction, updateInstructorAction, deleteInstructorAction, createOfferingAction } from "@/lib/actions/admin";
 
 interface Instructor { id: number; name: string; subject: string | null; oneUpCapacity: number; phone: string | null; }
 interface Offering { id: number; courseName: string; code: string; category: string; teacher: string | null; capacity: number; status: string; subject: string | null; confirmedCount: number; waitlistCount: number; }
@@ -14,6 +14,8 @@ export function StaffInstructors({ instructors: initialInstructors, offerings }:
   const [editing, setEditing] = useState<Instructor | null>(null);
   const [form, setForm] = useState({ name: "", subject: "", phone: "", oneUpCapacity: 5 });
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [showClassForm, setShowClassForm] = useState(false);
+  const [classForm, setClassForm] = useState({ code: "", courseName: "", category: "NORMAL_SEASON", capacity: 20, room: "" });
 
   useEffect(() => { setInstructors(initialInstructors); }, [initialInstructors]);
 
@@ -28,6 +30,9 @@ export function StaffInstructors({ instructors: initialInstructors, offerings }:
 
   async function handleSubmit(e: React.FormEvent) { e.preventDefault(); const r = editing ? await updateInstructorAction(editing.id, form) : await createInstructorAction(form); if (r.success) setShowForm(false); }
   async function handleDelete(id: number) { if (confirm("정말 삭제하시겠습니까?")) await deleteInstructorAction(id); }
+
+  function openAddClass() { setClassForm({ code: "", courseName: "", category: "NORMAL_SEASON", capacity: 20, room: "" }); setShowClassForm(true); }
+  async function handleCreateClass(e: React.FormEvent) { e.preventDefault(); const r = await createOfferingAction({ ...classForm, teacher: selected!.name }); if (r.success) setShowClassForm(false); }
 
   return (
     <div>
@@ -49,6 +54,27 @@ export function StaffInstructors({ instructors: initialInstructors, offerings }:
             <div className="mt-4 flex gap-2">
               <button type="submit" className="flex-1 rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">{editing ? "수정" : "추가"}</button>
               <button type="button" onClick={() => setShowForm(false)} className="rounded border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">취소</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showClassForm && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowClassForm(false)}>
+          <form onSubmit={handleCreateClass} className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h2 className="mb-4 text-lg font-bold">{selected.name} 선생님 수업 추가</h2>
+            <div className="space-y-3">
+              <input className="w-full rounded border px-3 py-2 text-sm" placeholder="코드 (예: KOR-01)" value={classForm.code} onChange={e => setClassForm({...classForm, code: e.target.value})} required />
+              <input className="w-full rounded border px-3 py-2 text-sm" placeholder="수업명" value={classForm.courseName} onChange={e => setClassForm({...classForm, courseName: e.target.value})} required />
+              <select className="w-full rounded border px-3 py-2 text-sm" value={classForm.category} onChange={e => setClassForm({...classForm, category: e.target.value})}>
+                <option value="NORMAL_SEASON">정규</option><option value="ONE_UP">원업</option><option value="SPECIAL">특강</option><option value="ESSAY_SPECIAL">논술</option>
+              </select>
+              <input className="w-full rounded border px-3 py-2 text-sm" type="number" placeholder="정원" value={classForm.capacity} onChange={e => setClassForm({...classForm, capacity: Number(e.target.value)})} required />
+              <input className="w-full rounded border px-3 py-2 text-sm" placeholder="강의실" value={classForm.room} onChange={e => setClassForm({...classForm, room: e.target.value})} />
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button type="submit" className="flex-1 rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">수업 추가</button>
+              <button type="button" onClick={() => setShowClassForm(false)} className="rounded border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">취소</button>
             </div>
           </form>
         </div>
@@ -80,7 +106,10 @@ export function StaffInstructors({ instructors: initialInstructors, offerings }:
                 <h2 className="text-lg font-bold">{selected.name} 선생님</h2>
                 <p className="text-sm text-gray-500">{selected.subject} · 원업 정원 {selected.oneUpCapacity}명 · {selected.phone || "연락처 없음"}</p>
               </div>
-              <h3 className="mb-2 text-sm font-medium text-gray-600">담당 수업 ({workload.length}개)</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-600">담당 수업 ({workload.length}개)</h3>
+                <button onClick={openAddClass} className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700">+ 수업 추가</button>
+              </div>
               {workload.length === 0 ? (
                 <div className="rounded-lg border bg-white p-6 text-center"><p className="text-sm text-gray-400">담당 중인 수업이 없습니다</p></div>
               ) : (
