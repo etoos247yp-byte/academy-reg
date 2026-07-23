@@ -60,9 +60,9 @@ ALTER TABLE "one_up_assignments" ADD CONSTRAINT fk_oua_offering FOREIGN KEY ("of
 
 -- Test Users (password: 1234 for admin/staff, 12345 for students)
 INSERT INTO "users" ("email","password_hash","name","role","phone") VALUES
-('1234','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy','관리자','ADMIN','010-0000-0001'),
-('staff@eetoos.kr','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy','박선생','STAFF','010-0000-0002'),
-('12345','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy','테스트학생','STUDENT','010-9999-9999')
+('1234','$2a$10$smm4l9ZiI8SVkgxed2o0pOwYb0V8NOd8h501YYYUmqisNPXgLNa.S','관리자','ADMIN','010-0000-0001'),
+('staff@eetoos.kr','$2a$10$smm4l9ZiI8SVkgxed2o0pOwYb0V8NOd8h501YYYUmqisNPXgLNa.S','박선생','STAFF','010-0000-0002'),
+('12345','$2a$10$Aak1ULhNPzU9MRMyFAMT4OvUEPtMVvNIqt9IW2R5K2XR.P0ubG4he','테스트학생','STUDENT','010-9999-9999')
 ON CONFLICT DO NOTHING;
 
 -- Student profiles
