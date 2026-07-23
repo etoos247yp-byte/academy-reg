@@ -3,3 +3,10 @@ node_modules/
 data/
 .env
 .env.local
+drizzle/meta/
+test-results/
+playwright-report/
+*.db
+*.db-journal
+*.db-wal
+tsconfig.tsbuildinfo

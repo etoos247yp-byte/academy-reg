@@ -1,37 +1,52 @@
-import { getIronSession, IronSession } from "iron-session";
+import { getIronSession, type IronSession } from "iron-session";
 import { cookies } from "next/headers";
 
-export interface SessionData {
-  userId: number;
+export type UserRole = "STUDENT" | "STAFF" | "ADMIN";
+
+export interface SessionUser {
+  id: number;
   email: string;
   name: string;
-  role: "admin" | "student";
+  role: UserRole;
 }
 
-const sessionOptions = {
-  password: process.env.SESSION_SECRET || "a-very-long-secret-key-at-least-32-chars!!",
-  cookieName: "course-reg-session",
-  cookieOptions: {
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    sameSite: "lax" as const,
-    maxAge: 60 * 60 * 24 * 7, // 1 week
-  },
-};
-
-export async function getSession(): Promise<IronSession<SessionData>> {
-  const cookieStore = await cookies();
-  const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
-  return session;
+export interface SessionData {
+  user: SessionUser;
 }
 
-export async function getCurrentUser(): Promise<SessionData | null> {
+function sessionSecret(): string {
+  if (process.env.TEST_MODE === "true") {
+    return "test-secret-key-at-least-32-characters-long!!";
+  }
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must be at least 32 characters");
+  }
+  return secret;
+}
+
+function getSession(): Promise<IronSession<SessionData>> {
+  const all = cookies();
+  const s = getIronSession<SessionData>(all, {
+    password: sessionSecret(),
+    cookieName: "academy-session",
+    cookieOptions: { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" },
+  });
+  return s;
+}
+
+export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await getSession();
-  if (!session.userId) return null;
-  return {
-    userId: session.userId,
-    email: session.email,
-    name: session.name,
-    role: session.role,
-  };
+  return session.user ?? null;
+}
+
+export async function createUserSession(user: SessionUser): Promise<void> {
+  const session = await getSession();
+  session.user = user;
+  await session.save();
+}
+
+export async function destroySession(): Promise<void> {
+  const session = await getSession();
+  session.destroy();
 }
