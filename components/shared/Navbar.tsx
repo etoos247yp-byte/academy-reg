@@ -58,6 +58,12 @@ export function Navbar({ user }: Props) {
               >
                 학생 목록
               </Link>
+              <Link
+                href="/staff/instructors"
+                className={`px-2 py-1 rounded ${isActive("/staff/instructors") ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                강사 관리
+              </Link>
             </div>
           ) : (
             <Link

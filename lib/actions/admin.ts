@@ -3,7 +3,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { requireStaff } from "@/lib/auth/authorization";
 import { revalidatePath } from "next/cache";
-import { MOCK_OFFERINGS, MOCK_STUDENTS } from "@/lib/db/mock-data";
+import { MOCK_OFFERINGS, MOCK_STUDENTS, MOCK_INSTRUCTORS } from "@/lib/db/mock-data";
 import { MOCK_ALL_REGISTRATIONS } from "@/lib/db/test-mode";
 
 function isTest() { return process.env.TEST_MODE === "true"; }
@@ -120,6 +120,43 @@ export async function enrollStudentAction(studentEmail: string, offeringId: numb
     });
     revalidatePath("/staff/registrations");
     return { success: true };
+  }
+  return { success: false, error: "DB not connected" };
+}
+
+// ── Instructor CRUD ──
+
+export async function createInstructorAction(form: {
+  name: string; subject: string; phone: string; oneUpCapacity: number;
+}) {
+  requireStaff(await getCurrentUser());
+  if (isTest()) {
+    const id = Math.max(0, ...MOCK_INSTRUCTORS.map((i) => i.id)) + 1;
+    MOCK_INSTRUCTORS.push({ id, ...form, phone: form.phone || null } as (typeof MOCK_INSTRUCTORS)[number]);
+    revalidatePath("/staff/instructors");
+    return { success: true };
+  }
+  return { success: false, error: "DB not connected" };
+}
+
+export async function updateInstructorAction(id: number, form: {
+  name: string; subject: string; phone: string; oneUpCapacity: number;
+}) {
+  requireStaff(await getCurrentUser());
+  if (isTest()) {
+    const idx = MOCK_INSTRUCTORS.findIndex((i) => i.id === id);
+    if (idx >= 0) { MOCK_INSTRUCTORS[idx] = { ...MOCK_INSTRUCTORS[idx], ...form, phone: form.phone || null } as (typeof MOCK_INSTRUCTORS)[number]; revalidatePath("/staff/instructors"); return { success: true }; }
+    return { error: "강사를 찾을 수 없습니다" };
+  }
+  return { success: false, error: "DB not connected" };
+}
+
+export async function deleteInstructorAction(id: number) {
+  requireStaff(await getCurrentUser());
+  if (isTest()) {
+    const idx = MOCK_INSTRUCTORS.findIndex((i) => i.id === id);
+    if (idx >= 0) { MOCK_INSTRUCTORS.splice(idx, 1); revalidatePath("/staff/instructors"); return { success: true }; }
+    return { error: "강사를 찾을 수 없습니다" };
   }
   return { success: false, error: "DB not connected" };
 }

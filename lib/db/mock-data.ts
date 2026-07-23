@@ -60,7 +60,7 @@ export const MOCK_STUDENTS = [
   { id: 1, name: "테스트학생", email: "12345", phone: "010-9999-9999", schoolGrade: "고3", classCode: "KW", highSchool: "이천제일고등학교", createdAt: new Date() },
 ];
 
-export const MOCK_INSTRUCTORS = [
+export const MOCK_INSTRUCTORS: { id: number; name: string; subject: string | null; oneUpCapacity: number; phone: string | null }[] = [
   { id: 1, name: "김민철", subject: "국어", oneUpCapacity: 5, phone: null },
   { id: 2, name: "이수진", subject: "영어", oneUpCapacity: 5, phone: null },
   { id: 3, name: "박성호", subject: "수학", oneUpCapacity: 5, phone: null },
