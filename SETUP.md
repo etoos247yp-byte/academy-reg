@@ -1,7 +1,9 @@
--- ========== SUPABASE SETUP ==========
--- Copy everything below and paste into Supabase SQL Editor
--- https://supabase.com/dashboard/project/eysamlflwidgvkitkonc/sql/new
+# Supabase Setup
 
+Copy all SQL below and paste into the Supabase SQL Editor at:
+https://supabase.com/dashboard/project/eysamlflwidgvkitkonc/sql/new
+
+```sql
 DO $$ BEGIN CREATE TYPE "public"."offering_category" AS ENUM('NORMAL_SEASON','ONE_UP','SPECIAL','ESSAY_SPECIAL','CUSTOM'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE "public"."offering_status" AS ENUM('DRAFT','PUBLISHED','ARCHIVED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE "public"."user_role" AS ENUM('STUDENT','STAFF','ADMIN'); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -52,8 +54,6 @@ ALTER TABLE "one_up_assignments" ADD CONSTRAINT fk_oua_registration FOREIGN KEY 
 ALTER TABLE "one_up_assignments" ADD CONSTRAINT fk_oua_instructor FOREIGN KEY ("instructor_id") REFERENCES "instructors"("id");
 ALTER TABLE "one_up_assignments" ADD CONSTRAINT fk_oua_offering FOREIGN KEY ("offering_id") REFERENCES "offerings"("id");
 
--- ========== SEED DATA ==========
-
 INSERT INTO "users" ("email","password_hash","name","role","phone") VALUES
 ('1234','$2a$10$smm4l9ZiI8SVkgxed2o0pOwYb0V8NOd8h501YYYUmqisNPXgLNa.S','관리자','ADMIN','010-0000-0001'),
 ('staff@eetoos.kr','$2a$10$smm4l9ZiI8SVkgxed2o0pOwYb0V8NOd8h501YYYUmqisNPXgLNa.S','박선생','STAFF','010-0000-0002'),
@@ -94,3 +94,14 @@ INSERT INTO "offerings" ("course_id","period_id","section_code","category","capa
 SELECT c.id, p.id, 'SP1', 'SPECIAL', 30, 'PUBLISHED', '대강당'
 FROM (SELECT id FROM "courses" WHERE code='SPC-ALL') c,
      (SELECT id FROM "academic_periods" LIMIT 1) p;
+```
+
+## After setup
+
+Go to https://academy-reg.vercel.app/login
+
+| Role | Login | Password |
+|---|---|---|
+| Admin | `1234` | `1234` |
+| Staff | `staff@eetoos.kr` | `1234` |
+| Student | `12345` | `12345` |
