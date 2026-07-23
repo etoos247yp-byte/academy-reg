@@ -10,6 +10,7 @@ interface Student {
   phone: string | null;
   schoolGrade: string | null;
   classCode: string | null;
+  highSchool: string | null;
 }
 
 interface Props {
@@ -79,7 +80,7 @@ export function StaffStudentList({ students }: Props) {
                       className={`w-full px-6 py-2 text-left text-sm hover:bg-gray-50 border-b ${selectedId === s.id ? "bg-blue-50 border-l-4 border-l-blue-600" : ""}`}
                     >
                       <p className="font-medium">{s.name}</p>
-                      <p className="text-xs text-gray-500">{s.email}</p>
+                      <p className="text-xs text-gray-500">{s.highSchool ?? s.schoolGrade}</p>
                     </button>
                   ))}
                 </div>
@@ -93,7 +94,7 @@ export function StaffStudentList({ students }: Props) {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold">{selected.name} 시간표</h2>
-                  <p className="text-xs text-gray-500">{selected.classCode}반 · {selected.schoolGrade} · {selected.email}</p>
+                  <p className="text-xs text-gray-500">{selected.classCode}반 · {selected.highSchool ?? selected.schoolGrade}</p>
                 </div>
                 <a
                   href={`/api/export/schedule?studentId=${selected.id}&studentName=${encodeURIComponent(selected.name)}`}

@@ -24,10 +24,12 @@ async function seed() {
 
   for (let i = 2; i < users.length; i++) {
     const classes = ["MK", "MJ", "MW", "ES", "EK", "HM", "HW", "DM", "DW", "KM", "KW"];
+    const schools = ["이천고", "장호원고", "이천제일고", "이천양정여고", "효양고", "부발고", "이천고", "이천양정여고", "장호원고", "효양고", "이천제일고"];
     await db.insert(schema.studentProfiles).values({
       userId: users[i].id,
       schoolGrade: i < 7 ? "고3" : "고2",
       classCode: classes[(i - 2) % classes.length],
+      highSchool: schools[(i - 2) % schools.length],
     });
   }
 

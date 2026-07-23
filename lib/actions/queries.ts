@@ -136,6 +136,7 @@ export async function getStudents() {
       phone: schema.users.phone,
       schoolGrade: schema.studentProfiles.schoolGrade,
       classCode: schema.studentProfiles.classCode,
+      highSchool: schema.studentProfiles.highSchool,
       createdAt: schema.users.createdAt,
     })
     .from(schema.users)

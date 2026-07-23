@@ -51,6 +51,7 @@ CREATE TABLE public.student_profiles (
   user_id integer NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE,
   school_grade varchar(20),
   class_code varchar(10),
+  high_school varchar(100),
   notes text,
   created_at timestamp NOT NULL DEFAULT now()
 );
@@ -224,7 +225,7 @@ INSERT INTO public.users (email, password_hash, name, role, phone) VALUES
   ('s09@test.kr', '$2a$10$Aak1ULhNPzU9MRMyFAMT4OvUEPtMVvNIqt9IW2R5K2XR.P0ubG4he', '임현우', 'STUDENT', '010-1111-0009'),
   ('s10@test.kr', '$2a$10$Aak1ULhNPzU9MRMyFAMT4OvUEPtMVvNIqt9IW2R5K2XR.P0ubG4he', '한소희', 'STUDENT', '010-1111-0010');
 
-INSERT INTO public.student_profiles (user_id, school_grade, class_code)
+INSERT INTO public.student_profiles (user_id, school_grade, class_code, high_school)
 SELECT
   u.id,
   CASE WHEN u.email IN ('12345', 's01@test.kr', 's02@test.kr', 's03@test.kr', 's04@test.kr', 's05@test.kr') THEN '고3' ELSE '고2' END,
@@ -240,6 +241,19 @@ SELECT
     WHEN 's09@test.kr' THEN 'DW'
     WHEN 's10@test.kr' THEN 'KM'
     WHEN '12345' THEN 'KW'
+  END,
+  CASE u.email
+    WHEN 's01@test.kr' THEN '이천고등학교'
+    WHEN 's02@test.kr' THEN '장호원고등학교'
+    WHEN 's03@test.kr' THEN '이천제일고등학교'
+    WHEN 's04@test.kr' THEN '이천양정여자고등학교'
+    WHEN 's05@test.kr' THEN '효양고등학교'
+    WHEN 's06@test.kr' THEN '부발고등학교'
+    WHEN 's07@test.kr' THEN '이천고등학교'
+    WHEN 's08@test.kr' THEN '이천양정여자고등학교'
+    WHEN 's09@test.kr' THEN '장호원고등학교'
+    WHEN 's10@test.kr' THEN '효양고등학교'
+    WHEN '12345' THEN '이천제일고등학교'
   END
 FROM public.users u
 WHERE u.role = 'STUDENT';

@@ -20,6 +20,7 @@ export const studentProfiles = pgTable("student_profiles", {
     .unique(),
   schoolGrade: varchar("school_grade", { length: 20 }),
   classCode: varchar("class_code", { length: 10 }),
+  highSchool: varchar("high_school", { length: 100 }),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
