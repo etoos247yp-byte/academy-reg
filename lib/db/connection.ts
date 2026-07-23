@@ -1,9 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "@/lib/db/schema";
-import dns from "dns";
-
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/academy_reg";
 const isSupabase = connectionString.includes("supabase") || connectionString.includes("pooler");
