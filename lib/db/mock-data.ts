@@ -47,9 +47,17 @@ export const MOCK_PERIOD = {
 };
 
 export const MOCK_STUDENTS = [
-  { id: 3, name: "김민수", email: "s01@test.kr", phone: "010-1111-2222", schoolGrade: "고3", createdAt: new Date() },
-  { id: 4, name: "이지영", email: "s02@test.kr", phone: "010-1111-3333", schoolGrade: "고3", createdAt: new Date() },
-  { id: 5, name: "박준호", email: "s03@test.kr", phone: "010-1111-4444", schoolGrade: "고3", createdAt: new Date() },
+  { id: 3, name: "김민수", email: "s01@test.kr", phone: "010-1111-0001", schoolGrade: "고3", classCode: "MK", createdAt: new Date() },
+  { id: 4, name: "이지영", email: "s02@test.kr", phone: "010-1111-0002", schoolGrade: "고3", classCode: "MJ", createdAt: new Date() },
+  { id: 5, name: "박준호", email: "s03@test.kr", phone: "010-1111-0003", schoolGrade: "고3", classCode: "MW", createdAt: new Date() },
+  { id: 6, name: "최서연", email: "s04@test.kr", phone: "010-1111-0004", schoolGrade: "고3", classCode: "ES", createdAt: new Date() },
+  { id: 7, name: "정도윤", email: "s05@test.kr", phone: "010-1111-0005", schoolGrade: "고3", classCode: "EK", createdAt: new Date() },
+  { id: 8, name: "강하은", email: "s06@test.kr", phone: "010-1111-0006", schoolGrade: "고2", classCode: "HM", createdAt: new Date() },
+  { id: 9, name: "윤지후", email: "s07@test.kr", phone: "010-1111-0007", schoolGrade: "고2", classCode: "HW", createdAt: new Date() },
+  { id: 10, name: "장예린", email: "s08@test.kr", phone: "010-1111-0008", schoolGrade: "고2", classCode: "DM", createdAt: new Date() },
+  { id: 11, name: "임현우", email: "s09@test.kr", phone: "010-1111-0009", schoolGrade: "고2", classCode: "DW", createdAt: new Date() },
+  { id: 12, name: "한소희", email: "s10@test.kr", phone: "010-1111-0010", schoolGrade: "고2", classCode: "KM", createdAt: new Date() },
+  { id: 1, name: "테스트학생", email: "12345", phone: "010-9999-9999", schoolGrade: "고3", classCode: "KW", createdAt: new Date() },
 ];
 
 export const MOCK_INSTRUCTORS = [

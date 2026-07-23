@@ -23,7 +23,12 @@ async function seed() {
   ]).returning({ id: schema.users.id });
 
   for (let i = 2; i < users.length; i++) {
-    await db.insert(schema.studentProfiles).values({ userId: users[i].id, schoolGrade: i < 7 ? "고3" : "고2" });
+    const classes = ["MK", "MJ", "MW", "ES", "EK", "HM", "HW", "DM", "DW", "KM", "KW"];
+    await db.insert(schema.studentProfiles).values({
+      userId: users[i].id,
+      schoolGrade: i < 7 ? "고3" : "고2",
+      classCode: classes[(i - 2) % classes.length],
+    });
   }
 
   const instructors = await db.insert(schema.instructors).values([
