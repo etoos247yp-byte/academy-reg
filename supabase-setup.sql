@@ -102,7 +102,6 @@ SELECT c.id, period.id, (SELECT id FROM "instructors" WHERE "subject"=(SELECT "s
 FROM c, period;
 
 -- SPECIAL offering
-WITH period AS (SELECT id FROM "academic_periods" LIMIT 1)
 INSERT INTO "offerings" ("course_id","period_id","section_code","category","capacity","status","room")
-SELECT id, period.id, 'SP1', 'SPECIAL', 30, 'PUBLISHED', '대강당'
-FROM "courses" WHERE code='SPC-ALL', period;
+SELECT c.id, p.id, 'SP1', 'SPECIAL', 30, 'PUBLISHED', '대강당'
+FROM "courses" c, (SELECT id FROM "academic_periods" LIMIT 1) p WHERE c.code='SPC-ALL';
