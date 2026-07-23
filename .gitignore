@@ -10,3 +10,5 @@ playwright-report/
 *.db-journal
 *.db-wal
 tsconfig.tsbuildinfo
+
+.vercel
