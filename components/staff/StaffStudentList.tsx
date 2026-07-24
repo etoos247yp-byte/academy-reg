@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { TimetableGrid, buildTimetableSessions } from "@/components/shared/TimetableGrid";
 import { createStudentAction, updateStudentAction, deleteStudentAction } from "@/lib/actions/admin";
 
-interface Student { id: number; name: string; email: string; phone: string | null; schoolGrade: string | null; classCode: string | null; highSchool: string | null; }
+interface Student { id: number; name: string; email: string; phone: string | null; schoolGrade: string | null; classCode: string | null; highSchool: string | null; lockDays: number | null; }
 interface Props { students: Student[]; }
 
 const CLASS_ORDER = ["MK", "MJ", "MW", "ES", "EK", "HM", "HW", "DM", "DW", "KM", "KW"];
@@ -18,7 +18,7 @@ export function StaffStudentList({ students: initialStudents }: Props) {
   const [studentSearch, setStudentSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", schoolGrade: "고3", classCode: "MK", highSchool: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", schoolGrade: "고3", classCode: "MK", highSchool: "", lockDays: "" });
   const [formError, setFormError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
 
@@ -37,9 +37,9 @@ export function StaffStudentList({ students: initialStudents }: Props) {
 
   useEffect(() => { if (!selectedId) { setSchedule([]); return; } setLoading(true); fetch(`/api/student-schedule?studentId=${selectedId}`).then(r => r.json()).then(d => setSchedule(buildTimetableSessions(d.sessions ?? []))).catch(() => setSchedule([])).finally(() => setLoading(false)); }, [selectedId]);
 
-  function openAdd() { setEditing(null); setForm({ name: "", email: "", phone: "", schoolGrade: "고3", classCode: "MK", highSchool: "" }); setFormError(""); setShowForm(true); }
-  function openEdit(s: Student) { setEditing(s); setForm({ name: s.name, email: s.email, phone: s.phone ?? "", schoolGrade: s.schoolGrade ?? "고3", classCode: s.classCode ?? "MK", highSchool: s.highSchool ?? "" }); setFormError(""); setShowForm(true); }
-  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); setFormLoading(true); setFormError(""); const r = editing ? await updateStudentAction(editing.id, form) : await createStudentAction(form); setFormLoading(false); if (r.success) { setShowForm(false); } else if ("error" in r && typeof r.error === "string") { setFormError(r.error); } }
+  function openAdd() { setEditing(null); setForm({ name: "", email: "", phone: "", schoolGrade: "고3", classCode: "MK", highSchool: "", lockDays: "" }); setFormError(""); setShowForm(true); }
+  function openEdit(s: Student) { setEditing(s); setForm({ name: s.name, email: s.email, phone: s.phone ?? "", schoolGrade: s.schoolGrade ?? "고3", classCode: s.classCode ?? "MK", highSchool: s.highSchool ?? "", lockDays: s.lockDays != null ? String(s.lockDays) : "" }); setFormError(""); setShowForm(true); }
+  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); setFormLoading(true); setFormError(""); const r = editing ? await updateStudentAction(editing.id, { ...form, lockDays: form.lockDays ? Number(form.lockDays) : undefined }) : await createStudentAction({ ...form, lockDays: form.lockDays ? Number(form.lockDays) : undefined }); setFormLoading(false); if (r.success) { setShowForm(false); } else if ("error" in r && typeof r.error === "string") { setFormError(r.error); } }
   async function handleDelete(id: number) { if (confirm("정말 삭제하시겠습니까?")) await deleteStudentAction(id); }
 
   return (
@@ -65,6 +65,10 @@ export function StaffStudentList({ students: initialStudents }: Props) {
               <select className="w-full border border-[#adadad] px-2 py-1.5 text-sm" value={form.classCode} onChange={e => setForm({...form, classCode: e.target.value})}>
                 {CLASS_ORDER.map(c => <option key={c} value={c}>{c}반</option>)}
               </select>
+              <div>
+                <label className="text-xs text-[#666] mb-1 block">수강확정기간 (일, 비워두면 학기 기본값)</label>
+                <input className="w-full border border-[#adadad] px-2 py-1.5 text-sm" type="number" placeholder="예: 14 (비워두면 기본값)" value={form.lockDays} onChange={e => setForm({...form, lockDays: e.target.value})} min={1} max={90} />
+              </div>
             </div>
             <div className="mt-3 flex gap-2">
               <button type="submit" disabled={formLoading} className="flex-1 erp-btn-primary text-sm">{formLoading ? "처리중..." : editing ? "수정" : "추가"}</button>

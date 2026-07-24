@@ -22,5 +22,6 @@ export const studentProfiles = pgTable("student_profiles", {
   classCode: varchar("class_code", { length: 10 }),
   highSchool: varchar("high_school", { length: 100 }),
   notes: text("notes"),
+  lockDays: integer("lock_days"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

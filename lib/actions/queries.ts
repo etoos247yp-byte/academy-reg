@@ -151,6 +151,7 @@ export async function getStudents() {
       schoolGrade: schema.studentProfiles.schoolGrade,
       classCode: schema.studentProfiles.classCode,
       highSchool: schema.studentProfiles.highSchool,
+      lockDays: schema.studentProfiles.lockDays,
       createdAt: schema.users.createdAt,
     })
     .from(schema.users)
@@ -204,9 +205,14 @@ export async function getActiveRegistrationWindow() {
 }
 
 export async function getRegistrationLockStatus(userId: number) {
-  if (isTestMode()) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0 };
+  if (isTestMode()) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays: 7 };
   const period = await getActivePeriod();
-  if (!period) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0 };
+  if (!period) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays: 7 };
+
+  // Determine lock days: per-student override → period default → 7
+  let lockDays = period.lockDays ?? 7;
+  const [profile] = await db.select({ lockDays: schema.studentProfiles.lockDays }).from(schema.studentProfiles).where(eq(schema.studentProfiles.userId, userId)).limit(1);
+  if (profile?.lockDays != null) lockDays = profile.lockDays;
 
   // Find earliest confirmed batch for this student in the active period
   const [firstBatch] = await db
@@ -222,10 +228,9 @@ export async function getRegistrationLockStatus(userId: number) {
     .orderBy(schema.registrationBatches.createdAt)
     .limit(1);
 
-  if (!firstBatch) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0 };
+  if (!firstBatch) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays };
 
-  const LOCK_DAYS = 7;
-  const lockDate = new Date(firstBatch.createdAt.getTime() + LOCK_DAYS * 24 * 60 * 60 * 1000);
+  const lockDate = new Date(firstBatch.createdAt.getTime() + lockDays * 24 * 60 * 60 * 1000);
   const isLocked = new Date() >= lockDate;
 
   // Count current NORMAL_SEASON confirmed registrations
@@ -267,5 +272,6 @@ export async function getRegistrationLockStatus(userId: number) {
     lockedTierSurcharge: lockedTier.monthlySurcharge,
     lockedNormalCount,
     currentNormalCount,
+    lockDays,
   };
 }

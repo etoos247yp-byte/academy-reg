@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { createOfferingAction, updateOfferingAction, deleteOfferingAction } from "@/lib/actions/admin";
+import { createOfferingAction, updateOfferingAction, deleteOfferingAction, updatePeriodLockDaysAction } from "@/lib/actions/admin";
 
 interface Offering { id: number; courseName: string; code: string; category: string; teacher: string | null; capacity: number; status: string; subject: string | null; confirmedCount: number; waitlistCount: number; }
 interface Instructor { id: number; name: string; subject: string | null; oneUpCapacity: number; }
 
-interface Props { periodId: number; periodName: string; offerings: Offering[]; instructors: Instructor[]; }
+interface Props { periodId: number; periodName: string; periodLockDays: number; offerings: Offering[]; instructors: Instructor[]; }
 
 const CAT_FILTERS = [{ key: "all", label: "전체" }, { key: "NORMAL_SEASON", label: "정규" }, { key: "ONE_UP", label: "원업" }, { key: "SPECIAL", label: "특강" }, { key: "ESSAY_SPECIAL", label: "논술" }];
 const CAT_LABELS: Record<string, string> = { NORMAL_SEASON: "정규", ONE_UP: "원업", SPECIAL: "특강", ESSAY_SPECIAL: "논술", CUSTOM: "사용자정의" };
 
-export function StaffOfferings({ periodName, offerings: initialOfferings, instructors }: Props) {
+export function StaffOfferings({ periodName, periodLockDays, offerings: initialOfferings, instructors, periodId }: Props) {
   const [offerings, setOfferings] = useState(initialOfferings);
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
@@ -33,12 +33,43 @@ export function StaffOfferings({ periodName, offerings: initialOfferings, instru
   function openAdd() { setEditing(null); setForm({ code: "", courseName: "", category: "NORMAL_SEASON", teacher: "", capacity: 20, status: "PUBLISHED", room: "" }); setFormError(""); setShowForm(true); }
   function openEdit(o: Offering) { setEditing(o); setForm({ code: o.code, courseName: o.courseName, category: o.category, teacher: o.teacher ?? "", capacity: o.capacity, status: o.status, room: "" }); setFormError(""); setShowForm(true); }
   async function handleSubmit(e: React.FormEvent) { e.preventDefault(); setFormLoading(true); setFormError(""); const r = editing ? await updateOfferingAction(editing.id, form) : await createOfferingAction(form); setFormLoading(false); if (r.success) { setShowForm(false); } else if ("error" in r && typeof r.error === "string") { setFormError(r.error); } }
+  const [editingLockDays, setEditingLockDays] = useState(false);
+  const [lockDaysVal, setLockDaysVal] = useState(periodLockDays);
+
+  async function handleSaveLockDays() {
+    await updatePeriodLockDaysAction(periodId, lockDaysVal);
+    setEditingLockDays(false);
+  }
+
   async function handleDelete(id: number) { if (confirm("정말 삭제하시겠습니까?")) await deleteOfferingAction(id); }
+
+  // Reset lockDays when prop changes
+  useEffect(() => { setLockDaysVal(periodLockDays); }, [periodLockDays]);
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <div><h1 className="text-lg font-bold" style={{ color: "#2b5797" }}>수업 관리</h1><p className="text-sm text-[#666]">{periodName}</p></div>
+        <div>
+          <h1 className="text-lg font-bold" style={{ color: "#2b5797" }}>수업 관리</h1>
+          <p className="text-sm text-[#666]">
+            {periodName}
+            <span className="ml-3 text-xs text-[#666]">
+              수강확정기간:{" "}
+              {editingLockDays ? (
+                <span>
+                  <input type="number" value={lockDaysVal} onChange={e => setLockDaysVal(Number(e.target.value))} min={1} max={90}
+                    className="w-14 border border-[#adadad] px-1 py-0 text-xs text-center" />
+                  <button onClick={handleSaveLockDays} className="erp-link text-xs ml-1">저장</button>
+                  <button onClick={() => { setLockDaysVal(periodLockDays); setEditingLockDays(false); }} className="text-xs text-[#666] ml-1">취소</button>
+                </span>
+              ) : (
+                <button onClick={() => setEditingLockDays(true)} className="erp-link text-xs">
+                  {lockDaysVal}일 (클릭하여 수정)
+                </button>
+              )}
+            </span>
+          </p>
+        </div>
         <button onClick={openAdd} className="erp-btn-primary text-sm">+ 수업 추가</button>
       </div>
 

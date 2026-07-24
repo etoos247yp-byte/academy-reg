@@ -28,7 +28,7 @@ function dbError(e: unknown): { success: false; error: string } {
 // ── Student CRUD ──
 
 export async function createStudentAction(form: {
-  name: string; email: string; phone: string; schoolGrade: string; classCode: string; highSchool: string;
+  name: string; email: string; phone: string; schoolGrade: string; classCode: string; highSchool: string; lockDays?: number;
 }) {
   requireStaff(await getCurrentUser());
   try {
@@ -42,6 +42,7 @@ export async function createStudentAction(form: {
       schoolGrade: form.schoolGrade || null,
       classCode: form.classCode || null,
       highSchool: form.highSchool || null,
+      lockDays: form.lockDays ?? null,
     });
     revalidatePath("/staff/students");
     return { success: true };
@@ -49,7 +50,7 @@ export async function createStudentAction(form: {
 }
 
 export async function updateStudentAction(id: number, form: {
-  name: string; email: string; phone: string; schoolGrade: string; classCode: string; highSchool: string;
+  name: string; email: string; phone: string; schoolGrade: string; classCode: string; highSchool: string; lockDays?: number;
 }) {
   requireStaff(await getCurrentUser());
   try {
@@ -57,7 +58,7 @@ export async function updateStudentAction(id: number, form: {
       .set({ name: form.name, email: form.email, phone: form.phone || null })
       .where(eq(schema.users.id, id));
     await db.update(schema.studentProfiles)
-      .set({ schoolGrade: form.schoolGrade || null, classCode: form.classCode || null, highSchool: form.highSchool || null })
+      .set({ schoolGrade: form.schoolGrade || null, classCode: form.classCode || null, highSchool: form.highSchool || null, lockDays: form.lockDays ?? null })
       .where(eq(schema.studentProfiles.userId, id));
     revalidatePath("/staff/students");
     return { success: true };
@@ -220,6 +221,17 @@ export async function deleteInstructorAction(id: number) {
   try {
     await db.delete(schema.instructors).where(eq(schema.instructors.id, id));
     revalidatePath("/staff/instructors");
+    return { success: true };
+  } catch (e) { return dbError(e); }
+}
+
+// ── Period settings ──
+
+export async function updatePeriodLockDaysAction(periodId: number, lockDays: number) {
+  requireStaff(await getCurrentUser());
+  try {
+    await db.update(schema.academicPeriods).set({ lockDays }).where(eq(schema.academicPeriods.id, periodId));
+    revalidatePath("/staff/offerings");
     return { success: true };
   } catch (e) { return dbError(e); }
 }

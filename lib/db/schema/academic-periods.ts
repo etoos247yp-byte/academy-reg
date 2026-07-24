@@ -8,6 +8,7 @@ export const academicPeriods = pgTable("academic_periods", {
   endDate: date("end_date").notNull(),
   billingDays: integer("billing_days"),
   isActive: integer("is_active").notNull().default(1),
+  lockDays: integer("lock_days").notNull().default(7),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -20,6 +20,7 @@ export default async function StaffOfferingsPage() {
         <StaffOfferings
           periodId={period?.id ?? 0}
           periodName={period?.name ?? ""}
+          periodLockDays={period?.lockDays ?? 7}
           offerings={offerings}
           instructors={instructors}
         />
