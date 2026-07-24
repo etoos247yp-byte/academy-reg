@@ -64,7 +64,15 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
     });
   }, [offerings, catFilter, search]);
 
-  const sessions = useMemo(() => buildTimetableSessions(scheduleData), [scheduleData]);
+  // Merge confirmed schedule + selected (pending) offerings for live timetable preview
+  const sessions = useMemo(() => {
+    const merged = [...scheduleData];
+    for (const id of selected) {
+      const scheds = scheduleByOffering.get(id);
+      if (scheds) merged.push(...scheds);
+    }
+    return buildTimetableSessions(merged);
+  }, [scheduleData, selected, scheduleByOffering]);
 
   function toggleOffering(id: number) {
     if (registeredIds.has(id)) {
