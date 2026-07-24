@@ -202,3 +202,70 @@ export async function getActiveRegistrationWindow() {
     .limit(1);
   return window ?? null;
 }
+
+export async function getRegistrationLockStatus(userId: number) {
+  if (isTestMode()) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0 };
+  const period = await getActivePeriod();
+  if (!period) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0 };
+
+  // Find earliest confirmed batch for this student in the active period
+  const [firstBatch] = await db
+    .select({ createdAt: schema.registrationBatches.createdAt })
+    .from(schema.registrationBatches)
+    .innerJoin(schema.registrations, eq(schema.registrationBatches.id, schema.registrations.batchId))
+    .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
+    .where(and(
+      eq(schema.registrationBatches.userId, userId),
+      eq(schema.offerings.periodId, period.id),
+      eq(schema.registrations.status, "CONFIRMED"),
+    ))
+    .orderBy(schema.registrationBatches.createdAt)
+    .limit(1);
+
+  if (!firstBatch) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0 };
+
+  const LOCK_DAYS = 7;
+  const lockDate = new Date(firstBatch.createdAt.getTime() + LOCK_DAYS * 24 * 60 * 60 * 1000);
+  const isLocked = new Date() >= lockDate;
+
+  // Count current NORMAL_SEASON confirmed registrations
+  const [currentCount] = await db
+    .select({ c: sql<number>`COUNT(*)` })
+    .from(schema.registrations)
+    .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
+    .where(and(
+      eq(schema.registrations.userId, userId),
+      eq(schema.offerings.periodId, period.id),
+      eq(schema.registrations.status, "CONFIRMED"),
+      eq(schema.offerings.category, "NORMAL_SEASON"),
+    ));
+
+  const currentNormalCount = Number(currentCount?.c ?? 0);
+
+  // Count NORMAL_SEASON registrations from batches at or before lock date
+  const [lockedCount] = await db
+    .select({ c: sql<number>`COUNT(*)` })
+    .from(schema.registrations)
+    .innerJoin(schema.registrationBatches, eq(schema.registrations.batchId, schema.registrationBatches.id))
+    .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
+    .where(and(
+      eq(schema.registrations.userId, userId),
+      eq(schema.offerings.periodId, period.id),
+      eq(schema.registrations.status, "CONFIRMED"),
+      eq(schema.offerings.category, "NORMAL_SEASON"),
+      sql`${schema.registrationBatches.createdAt} <= ${lockDate.toISOString()}`,
+    ));
+
+  const lockedNormalCount = Number(lockedCount?.c ?? 0);
+  const { computeNormalTier } = await import("@/modules/pricing/tiers");
+  const lockedTier = computeNormalTier(lockedNormalCount);
+
+  return {
+    isLocked,
+    lockedAt: isLocked ? lockDate : null,
+    lockedTierLabel: lockedTier.label,
+    lockedTierSurcharge: lockedTier.monthlySurcharge,
+    lockedNormalCount,
+    currentNormalCount,
+  };
+}

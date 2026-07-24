@@ -1,7 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getActivePeriod, getStudentOfferings, getRegistrations, getOfferingsByIds, getActiveRegistrationWindow } from "@/lib/actions/queries";
-import { Navbar } from "@/components/shared/Navbar";
+import { getActivePeriod, getStudentOfferings, getRegistrations, getOfferingsByIds, getActiveRegistrationWindow, getRegistrationLockStatus } from "@/lib/actions/queries";
 import { StudentDashboard } from "@/components/student/StudentDashboard";
 
 export default async function StudentRegistrationPage() {
@@ -13,6 +12,7 @@ export default async function StudentRegistrationPage() {
   const offerings = await getStudentOfferings(user.id);
   const registrations = await getRegistrations(user.id);
   const window = await getActiveRegistrationWindow();
+  const lockStatus = await getRegistrationLockStatus(user.id);
 
   const regOfferingIds = registrations
     .filter((r) => r.status === "CONFIRMED" || r.status === "WAITLISTED")
@@ -35,6 +35,7 @@ export default async function StudentRegistrationPage() {
           periodName={period.name}
           windowClosesAt={window?.closesAt ?? null}
           offeringSchedules={allScheduleData}
+          lockStatus={lockStatus}
         />
       ) : (
         <div className="rounded-lg border bg-white p-8 text-center shadow-sm">

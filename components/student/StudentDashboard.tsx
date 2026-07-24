@@ -9,7 +9,8 @@ import { TimetableGrid, buildTimetableSessions } from "@/components/shared/Timet
 interface Offering { id: number; courseName: string; code: string; category: string; teacher: string | null; capacity: number; status: string; subject: string | null; confirmedCount: number; }
 interface Registration { id: number; offeringId: number; status: string; courseName: string; category: string; teacher: string | null; waitlistSequence: number | null; }
 interface ScheduleRow { id: number; courseName: string; teacher: string | null; category: string; room: string | null; status: string; subject: string | null; capacity: number; sessionDate: string | Date | null; startTime: string | null; endTime: string | null; }
-interface Props { userId: number; periodId: number; offerings: Offering[]; registrations: Registration[]; scheduleData: ScheduleRow[]; periodName: string; windowClosesAt: Date | null; offeringSchedules: ScheduleRow[]; }
+interface LockStatus { isLocked: boolean; lockedAt: Date | null; lockedTierLabel: string; lockedTierSurcharge: number; lockedNormalCount: number; currentNormalCount: number; }
+interface Props { userId: number; periodId: number; offerings: Offering[]; registrations: Registration[]; scheduleData: ScheduleRow[]; periodName: string; windowClosesAt: Date | null; offeringSchedules: ScheduleRow[]; lockStatus: LockStatus; }
 
 const TABS = [{ key: "catalog", label: "수강 카탈로그" }, { key: "timetable", label: "내 시간표" }, { key: "my", label: "내 수강 목록" }];
 const CAT_FILTERS = [{ key: "all", label: "전체" }, { key: "NORMAL_SEASON", label: "정규수업" }, { key: "ONE_UP", label: "원업" }, { key: "SPECIAL", label: "특강" }, { key: "ESSAY_SPECIAL", label: "논술" }];
@@ -18,7 +19,7 @@ const CAT_LABELS: Record<string, string> = { NORMAL_SEASON: "정규", ONE_UP: "�
 function ft(t: string | null) { if (!t) return ""; return t.length >= 5 ? t.substring(0, 5) : t; }
 function fd(d: string | Date | null) { if (!d) return ""; const dt = typeof d === "string" ? new Date(d) : d; const days = ["일","월","화","수","목","금","토"]; return `${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]})`; }
 
-export function StudentDashboard({ userId, periodId, offerings, registrations, scheduleData, periodName, windowClosesAt, offeringSchedules }: Props) {
+export function StudentDashboard({ userId, periodId, offerings, registrations, scheduleData, periodName, windowClosesAt, offeringSchedules, lockStatus }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState("catalog");
   const [catFilter, setCatFilter] = useState("all");
@@ -29,6 +30,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [showAck, setShowAck] = useState(false); // acknowledgment modal
 
   const registeredIds = useMemo(() => new Set(registrations.map(r => r.offeringId)), [registrations]);
   const scheduleByOffering = useMemo(() => {
@@ -36,6 +38,21 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
     for (const s of offeringSchedules) { const l = m.get(s.id); if (l) l.push(s); else m.set(s.id, [s]); }
     return m;
   }, [offeringSchedules]);
+
+  // Count how many NORMAL_SEASON are currently selected (for lock check)
+  const selectedNormalCount = useMemo(() => {
+    return [...selected].filter(id => {
+      const o = offerings.find(x => x.id === id);
+      return o?.category === "NORMAL_SEASON";
+    }).length;
+  }, [selected, offerings]);
+
+  const currentNormalInSelection = useMemo(() => {
+    return registrations.filter(r => {
+      if (r.status !== "CONFIRMED") return false;
+      return r.category === "NORMAL_SEASON";
+    }).length + selectedNormalCount;
+  }, [registrations, selectedNormalCount]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -49,27 +66,74 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
 
   const sessions = useMemo(() => buildTimetableSessions(scheduleData), [scheduleData]);
 
-  function toggleOffering(id: number) { if (registeredIds.has(id)) return; setSelected(p => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; }); setReview(null); setError(""); setResult(null); }
+  function toggleOffering(id: number) {
+    if (registeredIds.has(id)) {
+      // Prevent removing if locked and would drop below locked tier
+      if (lockStatus.isLocked) {
+        const offering = offerings.find(o => o.id === id);
+        if (offering?.category === "NORMAL_SEASON") {
+          const newNormalCount = lockStatus.currentNormalCount - 1;
+          if (newNormalCount < lockStatus.lockedNormalCount) {
+            setError(`수강확정기간입니다. ${lockStatus.lockedTierLabel} 미만으로 변경할 수 없습니다. (현재 ${lockStatus.lockedTierLabel}, ${lockStatus.lockedNormalCount}과목 고정)`);
+            return;
+          }
+        }
+      }
+      return; // already registered — skip toggle
+    }
+    setSelected(p => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+    setReview(null); setError(""); setResult(null);
+  }
 
-  async function handleApply() {
+  // Step 1: validate and check for surcharge acknowledgment
+  async function handlePrepare() {
     if (selected.size === 0) { setError("수업을 하나 이상 선택해주세요"); return; }
     if (loading) return;
     setLoading(true); setError("");
     try {
       const r = await prepareSelectionAction(periodId, [...selected]);
-      if (r.error) { setError(r.error.message); return; }
-      if (!r.data) { setError("신청 중 오류가 발생했습니다"); return; }
+      if (r.error) { setError(r.error.message); setLoading(false); return; }
+      if (!r.data) { setError("신청 중 오류가 발생했습니다"); setLoading(false); return; }
       setReview(r.data);
-      if (r.data.items.some(i => i.outcome === "CONFLICT")) { setError("일부 수업에 시간 충돌이 있습니다. 선택을 조정한 후 다시 신청해주세요."); return; }
-      const c = await confirmSelectionAction(periodId, r.data.reviewToken, [...selected]);
+      setLoading(false);
+
+      if (r.data.items.some(i => i.outcome === "CONFLICT")) {
+        setError("일부 수업에 시간 충돌이 있습니다. 선택을 조정한 후 다시 신청해주세요.");
+        return;
+      }
+
+      // If surcharge > 0, require explicit acknowledgment
+      if (r.data.normalTierMonthlySurcharge > 0) {
+        setShowAck(true);
+        return;
+      }
+
+      // Free tier — confirm immediately
+      await doConfirm(r.data.reviewToken);
+    } catch { setError("신청 중 오류가 발생했습니다"); setLoading(false); }
+  }
+
+  // Step 2: confirm after acknowledgment
+  async function doConfirm(reviewToken: string) {
+    setLoading(true); setShowAck(false);
+    try {
+      const c = await confirmSelectionAction(periodId, reviewToken, [...selected]);
       if (c.error) { setError(c.error.message); return; }
-      if ("data" in c && c.data) { setResult("수강신청이 완료되었습니다"); setSelected(new Set()); setReview(null); router.refresh(); }
-      else if ("review" in c && c.review) { setReview(c.review); setError("상태가 변경되어 다시 확인이 필요합니다"); }
+      if ("data" in c && c.data) {
+        setResult("수강신청이 완료되었습니다");
+        setSelected(new Set()); setReview(null);
+        router.refresh();
+      } else if ("review" in c && c.review) {
+        setReview(c.review);
+        setError("상태가 변경되어 다시 확인이 필요합니다");
+      }
     } catch { setError("신청 중 오류가 발생했습니다"); }
     finally { setLoading(false); }
   }
 
   const deadlineText = windowClosesAt ? `신청 마감: ${new Date(windowClosesAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })} ${new Date(windowClosesAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}까지` : null;
+
+  const lockText = lockStatus.isLocked ? `수강확정 · ${lockStatus.lockedTierLabel} (${lockStatus.lockedNormalCount}과목 고정, 추가만 가능)` : null;
 
   const tabBtn = (k: string, l: string) => (
     <button key={k} onClick={() => { setTab(k); setResult(null); }}
@@ -81,9 +145,36 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
       <h1 className="text-lg font-bold" style={{ color: "#2b5797" }}>수강신청</h1>
       <p className="text-sm text-[#666]">{periodName}</p>
       {deadlineText && <p className="text-sm font-medium text-[#d83b01] mt-1">{deadlineText}</p>}
+      {lockText && (
+        <p className="text-sm font-medium mt-1" style={{ color: "#2b5797" }}>
+          🔒 {lockText} · 잠금일: {lockStatus.lockedAt!.toLocaleDateString("ko-KR")}
+        </p>
+      )}
 
       {result && <div className="my-3 border border-[#107c10] bg-[#f0fff0] p-3 text-sm text-[#107c10]">{result}</div>}
       {error && <div className="my-3 border border-[#a80000] bg-[#fff0f0] p-3 text-sm text-[#a80000]">{error}</div>}
+
+      {/* Acknowledgment modal for surcharge */}
+      {showAck && review && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
+          <div className="w-full max-w-md erp-card p-6">
+            <h2 className="text-base font-bold mb-3 border-b border-[#ccc] pb-2" style={{ color: "#2b5797" }}>추가 비용 안내</h2>
+            <div className="mb-4 border border-[#d83b01] bg-[#fff8f0] p-3 text-sm">
+              <p className="font-semibold text-[#d83b01]">{review.normalTierLabel}</p>
+              <p className="mt-1 text-[#333]">{review.disclosureText}</p>
+              <p className="mt-2 text-xs text-[#666]">※ 수강확정기간(1주일) 이후에는 현재 요금제 미만으로 변경할 수 없습니다.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => doConfirm(review.reviewToken)} disabled={loading}
+                className="flex-1 erp-btn-primary text-sm py-2 font-semibold">
+                {loading ? "처리중..." : `동의하고 신청하기 (${review.normalTierLabel})`}
+              </button>
+              <button onClick={() => { setShowAck(false); setReview(null); }}
+                className="erp-btn text-sm px-4">취소</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 mb-4 flex gap-0 border-b border-[#ccc] pb-2">
         {TABS.map(t => tabBtn(t.key, t.label))}
@@ -126,9 +217,9 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
                           <h3 className="font-semibold text-sm truncate">{o.courseName}</h3>
                           <p className="text-xs text-[#666]">{o.teacher ?? "미정"}{o.subject ? ` · ${o.subject}` : ""}</p>
                         </div>
-                        <button onClick={e => { e.stopPropagation(); toggleOffering(o.id); }} disabled={isReg || loading}
+                        <button onClick={e => { e.stopPropagation(); toggleOffering(o.id); }} disabled={loading}
                           className={`ml-2 shrink-0 px-3 py-1 text-xs border ${isReg ? "bg-[#eee] text-[#999] border-[#ccc] cursor-not-allowed" : isSel ? "bg-[#336699] text-white border-[#2b5797]" : full ? "bg-white text-[#d83b01] border-[#d83b01] hover:bg-[#fff8f0]" : "bg-[#e1e1e1] border-[#adadad] text-[#333] hover:bg-[#e5f1fb]"}`}>
-                          {isReg ? "신청완료" : isSel ? "선택됨" : full ? "대기신청" : "선택"}
+                          {isReg ? "수강중" : isSel ? "선택됨" : full ? "대기신청" : "선택"}
                         </button>
                       </div>
                       <div className="mt-2 flex items-center gap-2">
@@ -171,7 +262,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
                     ))}
                   </ul>
                 )}
-                <button onClick={handleApply} disabled={selected.size === 0 || loading}
+                <button onClick={handlePrepare} disabled={selected.size === 0 || loading}
                   className="w-full erp-btn-primary py-1.5 text-sm font-semibold disabled:opacity-50">
                   {loading ? "처리중..." : "신청하기"}
                 </button>
