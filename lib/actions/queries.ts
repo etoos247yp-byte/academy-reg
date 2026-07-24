@@ -12,6 +12,7 @@ export async function getActivePeriod() {
     .select()
     .from(schema.academicPeriods)
     .where(eq(schema.academicPeriods.isActive, 1))
+    .orderBy(schema.academicPeriods.id)
     .limit(1);
   return period ?? null;
 }
@@ -72,12 +73,20 @@ export async function getStudentOfferings(userId: number) {
     .from(schema.offerings)
     .innerJoin(schema.courses, eq(schema.offerings.courseId, schema.courses.id))
     .leftJoin(schema.instructors, eq(schema.offerings.instructorId, schema.instructors.id))
-    .where(eq(schema.offerings.status, "PUBLISHED"))
+    .where(
+      and(
+        eq(schema.offerings.status, "PUBLISHED"),
+        eq(schema.offerings.periodId, period.id),
+      ),
+    )
     .orderBy(schema.courses.subject, asc(schema.offerings.id));
 }
 
 export async function getRegistrations(userId: number) {
   if (isTestMode()) return TEST.getRegistrations();
+  const period = await getActivePeriod();
+  if (!period) return [];
+
   return db
     .select({
       id: schema.registrations.id,
@@ -96,6 +105,7 @@ export async function getRegistrations(userId: number) {
     .where(
       and(
         eq(schema.registrations.userId, userId),
+        eq(schema.offerings.periodId, period.id),
         sql`${schema.registrations.status} IN ('CONFIRMED', 'WAITLISTED')`,
       ),
     )
@@ -105,6 +115,9 @@ export async function getRegistrations(userId: number) {
 export async function getStaffRegistrations() {
   try { requireStaff(await getCurrentUser()); } catch { return []; }
   if (isTestMode()) return TEST.getStaffRegistrations();
+  const period = await getActivePeriod();
+  if (!period) return [];
+
   return db
     .select({
       id: schema.registrations.id,
@@ -122,6 +135,7 @@ export async function getStaffRegistrations() {
     .innerJoin(schema.users, eq(schema.registrations.userId, schema.users.id))
     .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
     .innerJoin(schema.courses, eq(schema.offerings.courseId, schema.courses.id))
+    .where(eq(schema.offerings.periodId, period.id))
     .orderBy(asc(schema.registrations.enrolledAt));
 }
 
@@ -174,4 +188,17 @@ export async function getOfferingsByIds(ids: number[]) {
     .leftJoin(schema.offeringSessions, eq(schema.offerings.id, schema.offeringSessions.offeringId))
     .where(inArray(schema.offerings.id, ids))
     .orderBy(schema.offerings.id, schema.offeringSessions.sessionDate);
+}
+
+export async function getActiveRegistrationWindow() {
+  if (isTestMode()) return null;
+  const period = await getActivePeriod();
+  if (!period) return null;
+  const [window] = await db
+    .select()
+    .from(schema.registrationWindows)
+    .where(eq(schema.registrationWindows.periodId, period.id))
+    .orderBy(schema.registrationWindows.id)
+    .limit(1);
+  return window ?? null;
 }

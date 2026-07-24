@@ -170,7 +170,7 @@ export async function confirmSelection(
   if (!tokenData || tokenData.userId !== userId) {
     throw new DomainError(
       "INVALID_REVIEW_TOKEN",
-      "유효하지 않은 검토 토큰입니다. 다시 확인해주세요.",
+      "유효하지 않은 신청 토큰입니다. 다시 시도해주세요.",
     );
   }
 
@@ -178,6 +178,13 @@ export async function confirmSelection(
 
   return db.transaction(async (tx) => {
     const open = await isRegistrationOpen(periodId);
+
+    // Lock user row first to prevent concurrent registrations by same student
+    await tx
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .for("update");
 
     const sortedIds = [...request.offeringIds].sort((a, b) => a - b);
 
@@ -215,7 +222,7 @@ export async function confirmSelection(
       return { success: false, review };
     }
 
-    // All-or-nothing: reject if any conflict
+    // Reject if any item has CONFLICT outcome
     const hasConflict = review.items.some((i) => i.outcome === "CONFLICT");
     if (hasConflict) {
       throw new DomainError(
@@ -224,14 +231,14 @@ export async function confirmSelection(
       );
     }
 
-    // Reject if any item is neither CONFIRMED nor WAITLISTED
+    // Reject if any item is not CONFIRMED, WAITLISTED, or SCHEDULE_PENDING
     const unsupported = review.items.some(
-      (i) => i.outcome !== "CONFIRMED" && i.outcome !== "WAITLISTED",
+      (i) => i.outcome !== "CONFIRMED" && i.outcome !== "WAITLISTED" && i.outcome !== "SCHEDULE_PENDING",
     );
     if (unsupported) {
       throw new DomainError(
         "REVIEW_REQUIRED",
-        "일부 수업을 확정할 수 없습니다. 검토 결과를 다시 확인해주세요.",
+        "일부 수업을 확정할 수 없습니다. 신청 내용을 다시 확인해주세요.",
       );
     }
 
@@ -272,7 +279,7 @@ export async function confirmSelection(
           batchId: batch.id,
           userId,
           offeringId: item.offeringId,
-          status: item.outcome,
+          status: item.outcome === "SCHEDULE_PENDING" ? "CONFIRMED" : item.outcome,
           waitlistSequence: item.outcome === "WAITLISTED" ? count + 1 : null,
         })
         .returning({ id: schema.registrations.id });

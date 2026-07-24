@@ -1,13 +1,13 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth/session";
-import { requireAuth, requireRole } from "@/lib/auth/authorization";
+import { requireRole } from "@/lib/auth/authorization";
 import { prepareSelection, confirmSelection } from "@/modules/registration/services/registration-service";
 import { revalidateRegistrationPaths } from "./revalidation";
 import { DomainError } from "@/modules/registration/domain/errors";
 
 export async function prepareSelectionAction(periodId: number, offeringIds: number[]) {
-  const user = requireAuth(await getCurrentUser());
+  const user = requireRole(await getCurrentUser(), ["STUDENT"]);
   try {
     const review = await prepareSelection(user.id, periodId, offeringIds);
     return { data: review };
@@ -20,7 +20,7 @@ export async function prepareSelectionAction(periodId: number, offeringIds: numb
 }
 
 export async function confirmSelectionAction(periodId: number, reviewToken: string, offeringIds: number[]) {
-  const user = requireAuth(await getCurrentUser());
+  const user = requireRole(await getCurrentUser(), ["STUDENT"]);
   try {
     const result = await confirmSelection(user.id, periodId, { reviewToken, offeringIds });
     if (result.success) {

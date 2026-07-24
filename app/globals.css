@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── ERP / Power BI Base Styles ── */
+@layer base {
+  html {
+    font-size: 14px;
+    -webkit-font-smoothing: auto;
+  }
+  body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, Arial, sans-serif;
+    background: #ececec;
+    color: #222;
+  }
+  table {
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #ccc;
+  }
+  input, select, textarea, button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+}
+
+/* ── Utility overrides ── */
+@layer utilities {
+  .erp-border { border: 1px solid #ccc; }
+  .erp-bg { background: #ececec; }
+  .erp-card { background: #fff; border: 1px solid #ccc; }
+  .erp-header { background: #ddd; border-bottom: 1px solid #ccc; font-weight: 600; }
+  .erp-btn { background: #e1e1e1; border: 1px solid #adadad; color: #222; padding: 4px 12px; cursor: pointer; }
+  .erp-btn:hover { background: #e5f1fb; border-color: #0078d4; }
+  .erp-btn-primary { background: #336699; border: 1px solid #2b5797; color: #fff; padding: 4px 12px; cursor: pointer; }
+  .erp-btn-primary:hover { background: #2b5797; }
+  .erp-btn-danger { background: #fff; border: 1px solid #a80000; color: #a80000; padding: 4px 12px; cursor: pointer; }
+  .erp-btn-danger:hover { background: #a80000; color: #fff; }
+  .erp-link { color: #336699; text-decoration: none; }
+  .erp-link:hover { text-decoration: underline; }
+  .erp-stat { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .erp-badge { display: inline-block; padding: 1px 6px; border: 1px solid #999; font-size: 0.75rem; }
+  .erp-badge-ok { border-color: #107c10; color: #107c10; background: #f0fff0; }
+  .erp-badge-warn { border-color: #d83b01; color: #d83b01; background: #fff8f0; }
+  .erp-badge-err { border-color: #a80000; color: #a80000; background: #fff0f0; }
+  .erp-badge-info { border-color: #336699; color: #336699; background: #f0f5ff; }
+}

@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const studentId = Number(searchParams.get("studentId"));
   if (!studentId) return NextResponse.json({ error: "studentId is required" }, { status: 400 });
+
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
+
+  // Allow staff/admin OR the student themselves to view their schedule
+  const isStaff = user.role === "STAFF" || user.role === "ADMIN";
+  if (!isStaff && user.id !== studentId) {
+    return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
+  }
 
   if (process.env.TEST_MODE === "true") {
     return NextResponse.json({
@@ -14,12 +24,6 @@ export async function GET(request: Request) {
           sessionDate: "2026-07-06", startTime: "11:00:00", endTime: "11:50:00" },
       ],
     });
-  }
-
-  const { getCurrentUser } = await import("@/lib/auth/session");
-  const { requireStaff } = await import("@/lib/auth/authorization");
-  try { requireStaff(await getCurrentUser()); } catch {
-    return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
   }
 
   const { db, schema } = await import("@/lib/db/connection");

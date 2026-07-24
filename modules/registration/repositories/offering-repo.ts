@@ -134,14 +134,13 @@ export async function findStudentRegistrations(userId: number): Promise<Registra
 }
 
 export async function getActiveWindow(periodId: number) {
-  const now = new Date();
   const [window] = await db
     .select()
     .from(schema.registrationWindows)
     .where(
       and(
         eq(schema.registrationWindows.periodId, periodId),
-        sql`${schema.registrationWindows.opensAt} <= ${now.toISOString()}`,
+        sql`${schema.registrationWindows.opensAt} <= now()`,
       ),
     )
     .limit(1);
@@ -150,8 +149,16 @@ export async function getActiveWindow(periodId: number) {
 }
 
 export async function isRegistrationOpen(periodId: number): Promise<boolean> {
-  const window = await getActiveWindow(periodId);
-  if (!window) return false;
-  const now = new Date();
-  return now >= window.opensAt && now <= window.closesAt;
+  const [window] = await db
+    .select()
+    .from(schema.registrationWindows)
+    .where(
+      and(
+        eq(schema.registrationWindows.periodId, periodId),
+        sql`${schema.registrationWindows.opensAt} <= now()`,
+        sql`${schema.registrationWindows.closesAt} >= now()`,
+      ),
+    )
+    .limit(1);
+  return !!window;
 }

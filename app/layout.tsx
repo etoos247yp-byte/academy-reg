@@ -12,7 +12,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getCurrentUser();
   return (
     <html lang="ko">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+      <body className="min-h-screen antialiased" style={{ background: "#ececec", color: "#222", fontSize: "14px", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif" }}>
         {user && <Navbar user={user} />}
         {children}
       </body>

@@ -131,6 +131,17 @@ export async function exportStudentScheduleAction(studentId: number, studentName
   return makeWorkbook(headers, rows);
 }
 
+function parseTime(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "";
+  // Already in HH:MM or HH:MM:SS format
+  if (t.includes(":")) return t.length === 5 ? `${t}:00` : t;
+  // HHMM or HMM format
+  if (t.length === 4) return `${t.substring(0, 2)}:${t.substring(2, 4)}:00`;
+  if (t.length === 3) return `0${t.substring(0, 1)}:${t.substring(1, 3)}:00`;
+  return "";
+}
+
 export async function importOfferingsAction(formData: FormData) {
   requireStaff(await getCurrentUser());
   const file = formData.get("file") as File;
@@ -211,15 +222,15 @@ export async function importOfferingsAction(formData: FormData) {
           capacity,
           room: room || undefined,
           status: "PUBLISHED",
-          sectionCode: `IMP${i}`,
+          sectionCode: code,
         }).returning({ id: schema.offerings.id });
 
         if (sessionDate && startTime && endTime) {
           await tx.insert(schema.offeringSessions).values({
             offeringId: off.id,
             sessionDate: sessionDate,
-            startTime: startTime.includes(":") ? startTime : `${startTime.substring(0, 2)}:${startTime.substring(2, 4)}:00`,
-            endTime: endTime.includes(":") ? endTime : `${endTime.substring(0, 2)}:${endTime.substring(2, 4)}:00`,
+            startTime: parseTime(startTime),
+            endTime: parseTime(endTime),
           });
         }
       });
@@ -327,7 +338,9 @@ export async function importRegistrationsAction(formData: FormData) {
         const [course] = await tx.select({ id: schema.courses.id }).from(schema.courses).where(eq(schema.courses.code, code)).limit(1);
         if (!course) throw new Error("수업을 찾을 수 없습니다");
 
-        const [offering] = await tx.select({ id: schema.offerings.id, capacity: schema.offerings.capacity }).from(schema.offerings).where(eq(schema.offerings.courseId, course.id)).limit(1);
+        const [offering] = await tx.select({ id: schema.offerings.id, capacity: schema.offerings.capacity }).from(schema.offerings).where(
+          and(eq(schema.offerings.courseId, course.id), eq(schema.offerings.status, "PUBLISHED"))
+        ).orderBy(schema.offerings.id).limit(1);
         if (!offering) throw new Error("개설된 수업이 없습니다");
 
         const [existing] = await tx.select({ id: schema.registrations.id }).from(schema.registrations).where(and(eq(schema.registrations.userId, student.id), eq(schema.registrations.offeringId, offering.id), sql`${schema.registrations.status} IN ('CONFIRMED', 'WAITLISTED')`)).limit(1);
@@ -336,7 +349,10 @@ export async function importRegistrationsAction(formData: FormData) {
         const [confirmed] = await tx.select({ c: sql<number>`COUNT(*)` }).from(schema.registrations).where(and(eq(schema.registrations.offeringId, offering.id), eq(schema.registrations.status, "CONFIRMED"))).then(r => [r[0]]);
         const isFull = Number(confirmed?.c ?? 0) >= offering.capacity;
 
-        const [w] = await tx.select({ id: schema.registrationWindows.id }).from(schema.registrationWindows).orderBy(schema.registrationWindows.id).limit(1);
+        // Get active period's registration window
+        const [period] = await tx.select({ id: schema.academicPeriods.id }).from(schema.academicPeriods).where(eq(schema.academicPeriods.isActive, 1)).orderBy(schema.academicPeriods.id).limit(1);
+        const periodId = period?.id ?? 1;
+        const [w] = await tx.select({ id: schema.registrationWindows.id }).from(schema.registrationWindows).where(eq(schema.registrationWindows.periodId, periodId)).orderBy(schema.registrationWindows.id).limit(1);
         const [batch] = await tx.insert(schema.registrationBatches).values({ userId: student.id, windowId: w?.id ?? 1, reviewToken: `import-${Date.now()}` }).returning({ id: schema.registrationBatches.id });
 
         if (isFull) {

@@ -26,8 +26,8 @@ test.describe("Student Registration", () => {
     await expect(page.locator("button:has-text('선택')").first()).toBeVisible();
   });
 
-  test("shows review button", async ({ page }) => {
-    const btn = page.locator("button:has-text('검토하기')");
+  test("shows apply button", async ({ page }) => {
+    const btn = page.locator("button:has-text('신청하기')");
     await expect(btn).toBeVisible();
   });
 
