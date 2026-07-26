@@ -35,6 +35,7 @@ export const MOCK_OFFERINGS = [
 export const MOCK_REGISTRATIONS = [
   { id: 1, offeringId: 3, status: "CONFIRMED", courseName: "국어", category: "NORMAL_SEASON", teacher: "김민철", waitlistSequence: null, enrolledAt: "2026-07-01" },
   { id: 2, offeringId: 9, status: "CONFIRMED", courseName: "수학", category: "NORMAL_SEASON", teacher: "박성호", waitlistSequence: null, enrolledAt: "2026-07-01" },
+  { id: 90, offeringId: 2, status: "CONFIRMED", courseName: "국어 원업", category: "ONE_UP", teacher: "김민철", waitlistSequence: null, enrolledAt: "2026-07-02" },
 ];
 
 export const MOCK_SCHEDULE_DATA = [

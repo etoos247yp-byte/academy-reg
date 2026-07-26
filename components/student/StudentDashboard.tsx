@@ -163,7 +163,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
   const lockText = lockStatus.isLocked ? `수강확정 · ${lockStatus.lockedTierLabel} (${lockStatus.lockedNormalCount}과목 고정, 추가만 가능)` : null;
 
   const tabBtn = (k: string, l: string) => (
-    <button key={k} onClick={() => { setTab(k); setResult(null); }}
+    <button key={k} onClick={() => { setTab(k); setResult(null); setError(""); }}
       className={`px-4 py-1 text-sm border ${tab === k ? "bg-white border-[#336699] text-[#336699] font-semibold" : "bg-[#e1e1e1] border-[#adadad] text-[#333] hover:bg-[#e5f1fb]"}`}>{l}</button>
   );
 
@@ -242,7 +242,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
                 showPrice={false}
                 scheduleByOffering={scheduleByOffering}
                 onToggle={toggleOffering}
-                emptyText="정규수업이 없습니다"
+                emptyText="등록된 정규수업이 없습니다. 관리자에게 문의해주세요."
               />
             ) : (
               normalSessions.length === 0 ? (
@@ -317,7 +317,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
               showPrice
               scheduleByOffering={scheduleByOffering}
               onToggle={toggleOffering}
-              emptyText="특강이 없습니다"
+              emptyText="현재 신청 가능한 특강이 없습니다. 새 특강이 열리면 이곳에 표시됩니다."
             />
             <SpecialSchedule scheduleData={scheduleData} />
           </div>
@@ -339,7 +339,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
               showPrice
               scheduleByOffering={scheduleByOffering}
               onToggle={toggleOffering}
-              emptyText="원업 수업이 없습니다"
+              emptyText="현재 신청 가능한 원업 수업이 없습니다. 새 수업이 열리면 이곳에 표시됩니다."
             />
             <OneUpStatus rows={oneUpStatus} />
           </div>

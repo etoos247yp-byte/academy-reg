@@ -18,8 +18,9 @@ interface Props {
 
 export function HomeTab({ registrations, scheduleData, windowClosesAt, lockStatus, normalCount, oneUpRows, onGoTab }: Props) {
   const dDay = windowClosesAt ? Math.ceil((new Date(windowClosesAt).getTime() - Date.now()) / 86400000) : null;
+  const showDDay = dDay !== null && dDay >= 0;
   const waitlisted = registrations.filter(r => r.status === "WAITLISTED");
-  const hasAlerts = dDay !== null || lockStatus.isLocked || waitlisted.length > 0;
+  const hasAlerts = showDDay || lockStatus.isLocked || waitlisted.length > 0;
 
   const tier = computeNormalTier(normalCount);
 
@@ -35,8 +36,8 @@ export function HomeTab({ registrations, scheduleData, windowClosesAt, lockStatu
     <div>
       {hasAlerts && (
         <div className="mb-3 space-y-1">
-          {dDay !== null && (
-            <p className="text-sm font-semibold" style={{ color: dDay <= 3 ? "#a80000" : "#2b5797" }}>
+          {showDDay && (
+            <p className="text-sm font-semibold" style={{ color: dDay! <= 3 ? "#a80000" : "#2b5797" }}>
               신청 마감 D-{dDay}
             </p>
           )}

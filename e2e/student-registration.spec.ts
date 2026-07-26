@@ -14,7 +14,7 @@ test.describe("Student Registration", () => {
 
   test("displays home dashboard after login", async ({ page }) => {
     await expect(page.locator("h1")).toContainText("수강신청");
-    await expect(page.locator("button:has-text('정규수업')")).toBeVisible();
+    await expect(page.locator("button:has-text('정규수업')").first()).toBeVisible();
     await expect(page.locator("button:has-text('특강')").first()).toBeVisible();
     await expect(page.locator("button:has-text('원업')").first()).toBeVisible();
     await expect(page.locator("text=나의 CLASS")).toBeVisible();
@@ -22,7 +22,7 @@ test.describe("Student Registration", () => {
   });
 
   test("normal tab shows catalog with courses", async ({ page }) => {
-    await page.locator("button:has-text('정규수업')").click();
+    await page.locator("button:has-text('정규수업')").first().click();
     await page.waitForTimeout(500);
     await expect(page.locator("text=국어").first()).toBeVisible();
     await expect(page.locator("button:has-text('신청하기')")).toBeVisible();
@@ -35,7 +35,7 @@ test.describe("Student Registration", () => {
   });
 
   test("can select a course from normal tab", async ({ page }) => {
-    await page.locator("button:has-text('정규수업')").click();
+    await page.locator("button:has-text('정규수업')").first().click();
     await page.waitForTimeout(300);
     const selectBtn = page.locator("button:has-text('선택')").first();
     await selectBtn.click();
@@ -44,7 +44,7 @@ test.describe("Student Registration", () => {
   });
 
   test("normal tab full timetable view", async ({ page }) => {
-    await page.locator("button:has-text('정규수업')").click();
+    await page.locator("button:has-text('정규수업')").first().click();
     await page.locator("button:has-text('전체 시간표')").click();
     await page.waitForTimeout(300);
     await expect(page.locator("text=월요일")).toBeVisible();

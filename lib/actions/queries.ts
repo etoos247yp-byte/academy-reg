@@ -281,6 +281,9 @@ export async function getRegistrationLockStatus(userId: number) {
 }
 
 export async function getOneUpStatus(userId: number) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  if (user.role === "STUDENT" && user.id !== userId) return [];
   if (isTestMode()) return TEST.getOneUpStatus();
   const period = await getActivePeriod();
   if (!period) return [];
@@ -309,7 +312,12 @@ export async function getOneUpStatus(userId: number) {
 }
 
 export async function getRegistrationHistory(userId: number) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  if (user.role === "STUDENT" && user.id !== userId) return [];
   if (isTestMode()) return TEST.getRegistrationHistory();
+  const period = await getActivePeriod();
+  if (!period) return [];
   const rows = await db
     .select({
       batchId: schema.registrationBatches.id,
@@ -323,7 +331,10 @@ export async function getRegistrationHistory(userId: number) {
     .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
     .innerJoin(schema.courses, eq(schema.offerings.courseId, schema.courses.id))
     .leftJoin(schema.registrationDisclosures, eq(schema.registrationDisclosures.batchId, schema.registrationBatches.id))
-    .where(eq(schema.registrationBatches.userId, userId))
+    .where(and(
+      eq(schema.registrationBatches.userId, userId),
+      eq(schema.offerings.periodId, period.id),
+    ))
     .orderBy(sql`${schema.registrationBatches.createdAt} DESC`);
 
   const byBatch = new Map<number, { batchId: number; createdAt: Date; disclosureText: string | null; items: { courseName: string; status: string }[] }>();

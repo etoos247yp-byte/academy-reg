@@ -32,13 +32,13 @@ export function MyRegistrations({ registrations, history }: Props) {
             ))}
           </tbody>
         </table>
-        {registrations.length === 0 && <p className="px-4 py-8 text-center text-sm text-[#999]">수강 내역이 없습니다</p>}
+        {registrations.length === 0 && <p className="px-4 py-8 text-center text-sm text-[#999]">수강 내역이 없습니다. 정규수업, 특강, 원업 탭에서 수업을 신청해주세요.</p>}
       </div>
 
       <div className="erp-card p-3">
         <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>신청 내역</h3>
         {history.length === 0 ? (
-          <p className="text-sm text-[#999] py-4 text-center">신청 내역이 없습니다.</p>
+          <p className="text-sm text-[#999] py-4 text-center">신청 내역이 없습니다. 수업을 신청하면 신청 기록과 비용 안내가 이곳에 남습니다.</p>
         ) : (
           <ul className="space-y-3">
             {history.map(batch => (
