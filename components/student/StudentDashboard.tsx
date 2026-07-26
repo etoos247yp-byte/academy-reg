@@ -171,8 +171,9 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
               <p className="text-base font-bold text-[#d83b01]">{review.normalTierLabel}</p>
               <p className="mt-1 text-[#333]">{review.disclosureText}</p>
             </div>
-            <div className="mb-4 border-2 border-[#a80000] bg-[#fff0f0] p-3">
-              <p className="text-sm font-bold text-[#a80000]">
+            <div className="mb-4 flex items-start gap-2 border-2 border-[#7a0000] p-3" style={{ background: "#a80000" }}>
+              <span className="text-base leading-5">⚠️</span>
+              <p className="text-base font-bold leading-6 text-white">
                 수강확정기간({lockStatus.lockDays}일) 이후에는 현재 요금제 미만으로 변경할 수 없습니다.
               </p>
             </div>
