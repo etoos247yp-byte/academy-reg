@@ -6,6 +6,7 @@ data/
 drizzle/meta/
 test-results/
 playwright-report/
+.playwright-mcp/
 *.db
 *.db-journal
 *.db-wal

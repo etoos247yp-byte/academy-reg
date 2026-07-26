@@ -3,7 +3,7 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import { validateSelection } from "@/modules/registration/domain/registration";
 import { DomainError } from "@/modules/registration/domain/errors";
 import { isRegistrationOpen } from "@/modules/registration/repositories/offering-repo";
-import crypto from "crypto";
+import { createSeed, composeToken, parseToken } from "@/modules/registration/services/review-token";
 import type {
   SelectionReview,
   ConfirmRequest,
@@ -13,18 +13,6 @@ import type {
 } from "@/modules/registration/domain/types";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { PgTransaction } from "drizzle-orm/pg-core";
-
-const REVIEW_TOKENS = new Map<
-  string,
-  { userId: number; offeringIds: number[]; expiresAt: Date }
->();
-
-function cleanExpiredTokens() {
-  const now = new Date();
-  for (const [token, data] of REVIEW_TOKENS) {
-    if (data.expiresAt < now) REVIEW_TOKENS.delete(token);
-  }
-}
 
 type TxOrDb = typeof db | ReturnType<typeof db.transaction> extends Promise<infer R> ? R : never;
 
@@ -137,7 +125,7 @@ export async function prepareSelection(
   const existing = await findStudentRegistrationsTx(db, userId);
   const offerings = await findOfferingsByIdsTx(db, offeringIds);
 
-  const seed = crypto.randomBytes(32).toString("hex");
+  const seed = createSeed(userId, periodId);
 
   const review = validateSelection({
     offerings,
@@ -147,14 +135,7 @@ export async function prepareSelection(
     reviewToken: seed,
   });
 
-  cleanExpiredTokens();
-  REVIEW_TOKENS.set(review.reviewToken, {
-    userId,
-    offeringIds,
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-  });
-
-  return review;
+  return { ...review, reviewToken: composeToken(seed, review.reviewToken) };
 }
 
 export async function confirmSelection(
@@ -164,17 +145,14 @@ export async function confirmSelection(
 ): Promise<
   { success: true; batchId: number } | { success: false; review: SelectionReview }
 > {
-  cleanExpiredTokens();
-  const tokenData = REVIEW_TOKENS.get(request.reviewToken);
+  const parsed = parseToken(request.reviewToken, userId, periodId);
 
-  if (!tokenData || tokenData.userId !== userId) {
+  if (!parsed) {
     throw new DomainError(
       "INVALID_REVIEW_TOKEN",
       "유효하지 않은 신청 토큰입니다. 다시 시도해주세요.",
     );
   }
-
-  REVIEW_TOKENS.delete(request.reviewToken);
 
   return db.transaction(async (tx) => {
     const open = await isRegistrationOpen(periodId);
@@ -209,17 +187,25 @@ export async function confirmSelection(
       existingRegistrations: existing,
       selection: sortedIds.map((id) => ({ offeringId: id })),
       registrationWindowOpen: open,
-      reviewToken: request.reviewToken,
+      reviewToken: parsed.seed,
     });
 
-    const changed = review.reviewToken !== request.reviewToken;
+    // Same seed + unchanged outcomes → same fingerprint. A mismatch means the
+    // state the student reviewed has changed; hand back a fresh review/token.
+    const changed = review.reviewToken !== parsed.fingerprint;
     if (changed) {
-      REVIEW_TOKENS.set(review.reviewToken, {
-        userId,
-        offeringIds: sortedIds,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      const newSeed = createSeed(userId, periodId);
+      const reissued = validateSelection({
+        offerings,
+        existingRegistrations: existing,
+        selection: sortedIds.map((id) => ({ offeringId: id })),
+        registrationWindowOpen: open,
+        reviewToken: newSeed,
       });
-      return { success: false, review };
+      return {
+        success: false,
+        review: { ...reissued, reviewToken: composeToken(newSeed, reissued.reviewToken) },
+      };
     }
 
     // Reject if any item has CONFLICT outcome
