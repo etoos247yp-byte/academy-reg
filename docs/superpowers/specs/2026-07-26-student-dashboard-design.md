@@ -40,9 +40,6 @@ The full-page timetable lives inside 정규수업.
   lock-period status if locked, waitlisted courses with queue position.
 - **나의 CLASS card**: A–D segment meter, 정규 confirmed count, monthly
   surcharge. Counts NORMAL_SEASON registrations only.
-- **비용 요약 card**: CLASS 월 비용 + sum of registered 특강/논술 package
-  totals + sum of registered 원업 package totals = 예상 총 비용. Reads
-  `offering_pricing` for non-정규 amounts; 정규 amount is the tier surcharge.
 - **이번 주 시간표**: mini weekly grid, 정규수업 sessions only.
 - **다가오는 특강**: next dated sessions of registered 특강/논술, as a date
   list (dated events, not weekly-recurring).
@@ -111,10 +108,9 @@ e2e still renders every tab.
 
 ## Testing
 
-- Unit: price-summary computation (tier + package sums) as a pure function
-  with vitest; date-list grouping helper.
-- e2e (TEST_MODE): tabs render, 홈 shows CLASS meter and 비용 요약, 특강 tab
-  shows prices, catalog selection still reaches the confirm flow.
+- Unit: date-list grouping helper for 특강 sessions with vitest.
+- e2e (TEST_MODE): tabs render, 홈 shows CLASS meter, 특강 tab shows prices,
+  catalog selection still reaches the confirm flow.
 - Manual live check against Supabase before push (established practice).
 
 ## Out of scope (later phases)
