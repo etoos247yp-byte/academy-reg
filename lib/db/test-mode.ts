@@ -6,6 +6,8 @@ import {
   MOCK_STAFF,
   MOCK_STUDENTS,
   MOCK_INSTRUCTORS,
+  MOCK_ONEUP_STATUS,
+  MOCK_HISTORY,
 } from "@/lib/db/mock-data";
 
 export const MOCK_ALL_REGISTRATIONS = [
@@ -27,4 +29,6 @@ export const TEST = {
   getStudents: () => MOCK_STUDENTS,
   getInstructors: () => MOCK_INSTRUCTORS,
   getOfferingsByIds: () => MOCK_SCHEDULE_DATA,
+  getOneUpStatus: () => MOCK_ONEUP_STATUS,
+  getRegistrationHistory: () => MOCK_HISTORY,
 };

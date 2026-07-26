@@ -11,7 +11,9 @@ interface Offering { id: number; courseName: string; code: string; category: str
 interface Registration { id: number; offeringId: number; status: string; courseName: string; category: string; teacher: string | null; waitlistSequence: number | null; }
 interface ScheduleRow { id: number; courseName: string; teacher: string | null; category: string; room: string | null; status: string; subject: string | null; capacity: number; sessionDate: string | Date | null; startTime: string | null; endTime: string | null; }
 interface LockStatus { isLocked: boolean; lockedAt: Date | null; lockedTierLabel: string; lockedTierSurcharge: number; lockedNormalCount: number; currentNormalCount: number; lockDays: number; }
-interface Props { userId: number; periodId: number; offerings: Offering[]; registrations: Registration[]; scheduleData: ScheduleRow[]; periodName: string; windowClosesAt: Date | null; offeringSchedules: ScheduleRow[]; lockStatus: LockStatus; }
+interface OneUpStatus { registrationId: number; courseName: string; teacher: string | null; status: string; assignedDate: string | null; startTime: string | null; endTime: string | null; }
+interface HistoryBatch { batchId: number; createdAt: string | Date; disclosureText: string | null; items: { courseName: string; status: string }[]; }
+interface Props { userId: number; periodId: number; offerings: Offering[]; registrations: Registration[]; scheduleData: ScheduleRow[]; periodName: string; windowClosesAt: Date | null; offeringSchedules: ScheduleRow[]; lockStatus: LockStatus; oneUpStatus: OneUpStatus[]; history: HistoryBatch[]; }
 
 const TABS = [{ key: "catalog", label: "수강 카탈로그" }, { key: "timetable", label: "내 시간표" }, { key: "my", label: "내 수강 목록" }];
 const CAT_FILTERS = [{ key: "all", label: "전체" }, { key: "NORMAL_SEASON", label: "정규수업" }, { key: "ONE_UP", label: "원업" }, { key: "SPECIAL", label: "특강" }, { key: "ESSAY_SPECIAL", label: "논술" }];
@@ -20,7 +22,7 @@ const CAT_LABELS: Record<string, string> = { NORMAL_SEASON: "정규", ONE_UP: "�
 function ft(t: string | null) { if (!t) return ""; return t.length >= 5 ? t.substring(0, 5) : t; }
 function fd(d: string | Date | null) { if (!d) return ""; const dt = typeof d === "string" ? new Date(d) : d; const days = ["일","월","화","수","목","금","토"]; return `${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]})`; }
 
-export function StudentDashboard({ userId, periodId, offerings, registrations, scheduleData, periodName, windowClosesAt, offeringSchedules, lockStatus }: Props) {
+export function StudentDashboard({ userId, periodId, offerings, registrations, scheduleData, periodName, windowClosesAt, offeringSchedules, lockStatus, oneUpStatus, history }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState("catalog");
   const [catFilter, setCatFilter] = useState("all");

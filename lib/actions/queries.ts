@@ -69,10 +69,14 @@ export async function getStudentOfferings(userId: number) {
         WHERE ${schema.registrations.offeringId} = ${schema.offerings.id}
         AND ${schema.registrations.status} = 'CONFIRMED'
       ), 0)`,
+      priceAmountPerSession: schema.offeringPricing.priceAmountPerSession,
+      sessionCount: schema.offeringPricing.sessionCount,
+      packageTotal: schema.offeringPricing.packageTotal,
     })
     .from(schema.offerings)
     .innerJoin(schema.courses, eq(schema.offerings.courseId, schema.courses.id))
     .leftJoin(schema.instructors, eq(schema.offerings.instructorId, schema.instructors.id))
+    .leftJoin(schema.offeringPricing, eq(schema.offerings.id, schema.offeringPricing.offeringId))
     .where(
       and(
         eq(schema.offerings.status, "PUBLISHED"),
@@ -274,4 +278,62 @@ export async function getRegistrationLockStatus(userId: number) {
     currentNormalCount,
     lockDays,
   };
+}
+
+export async function getOneUpStatus(userId: number) {
+  if (isTestMode()) return TEST.getOneUpStatus();
+  const period = await getActivePeriod();
+  if (!period) return [];
+  return db
+    .select({
+      registrationId: schema.registrations.id,
+      courseName: schema.courses.name,
+      teacher: schema.instructors.name,
+      status: schema.registrations.status,
+      assignedDate: schema.oneUpAssignments.sessionDate,
+      startTime: schema.oneUpAssignments.startTime,
+      endTime: schema.oneUpAssignments.endTime,
+    })
+    .from(schema.registrations)
+    .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
+    .innerJoin(schema.courses, eq(schema.offerings.courseId, schema.courses.id))
+    .leftJoin(schema.instructors, eq(schema.offerings.instructorId, schema.instructors.id))
+    .leftJoin(schema.oneUpAssignments, eq(schema.oneUpAssignments.registrationId, schema.registrations.id))
+    .where(and(
+      eq(schema.registrations.userId, userId),
+      eq(schema.offerings.periodId, period.id),
+      eq(schema.offerings.category, "ONE_UP"),
+      sql`${schema.registrations.status} IN ('CONFIRMED', 'WAITLISTED')`,
+    ))
+    .orderBy(asc(schema.registrations.enrolledAt));
+}
+
+export async function getRegistrationHistory(userId: number) {
+  if (isTestMode()) return TEST.getRegistrationHistory();
+  const rows = await db
+    .select({
+      batchId: schema.registrationBatches.id,
+      createdAt: schema.registrationBatches.createdAt,
+      disclosureText: schema.registrationDisclosures.disclosureText,
+      courseName: schema.courses.name,
+      status: schema.registrations.status,
+    })
+    .from(schema.registrationBatches)
+    .innerJoin(schema.registrations, eq(schema.registrations.batchId, schema.registrationBatches.id))
+    .innerJoin(schema.offerings, eq(schema.registrations.offeringId, schema.offerings.id))
+    .innerJoin(schema.courses, eq(schema.offerings.courseId, schema.courses.id))
+    .leftJoin(schema.registrationDisclosures, eq(schema.registrationDisclosures.batchId, schema.registrationBatches.id))
+    .where(eq(schema.registrationBatches.userId, userId))
+    .orderBy(sql`${schema.registrationBatches.createdAt} DESC`);
+
+  const byBatch = new Map<number, { batchId: number; createdAt: Date; disclosureText: string | null; items: { courseName: string; status: string }[] }>();
+  for (const r of rows) {
+    let b = byBatch.get(r.batchId);
+    if (!b) {
+      b = { batchId: r.batchId, createdAt: r.createdAt, disclosureText: r.disclosureText, items: [] };
+      byBatch.set(r.batchId, b);
+    }
+    b.items.push({ courseName: r.courseName, status: r.status });
+  }
+  return [...byBatch.values()];
 }

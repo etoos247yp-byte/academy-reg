@@ -15,31 +15,40 @@ export const MOCK_STAFF: SessionUser = {
 };
 
 export const MOCK_OFFERINGS = [
-  { id: 1, courseName: "여름방학 특강", code: "SPC-ALL", category: "SPECIAL", teacher: "김민철", capacity: 30, status: "PUBLISHED", subject: "종합", confirmedCount: 8, waitlistCount: 0 },
-  { id: 2, courseName: "국어 원업", code: "ONEUP-KOR", category: "ONE_UP", teacher: "김민철", capacity: 5, status: "PUBLISHED", subject: "국어", confirmedCount: 2, waitlistCount: 0 },
-  { id: 3, courseName: "국어", code: "KOR-01", category: "NORMAL_SEASON", teacher: "김민철", capacity: 20, status: "PUBLISHED", subject: "국어", confirmedCount: 11, waitlistCount: 0 },
-  { id: 4, courseName: "영어 원업", code: "ONEUP-ENG", category: "ONE_UP", teacher: "이수진", capacity: 5, status: "PUBLISHED", subject: "영어", confirmedCount: 3, waitlistCount: 0 },
-  { id: 5, courseName: "영어 심화", code: "ENG-02", category: "NORMAL_SEASON", teacher: "이수진", capacity: 20, status: "PUBLISHED", subject: "영어", confirmedCount: 0, waitlistCount: 0 },
-  { id: 6, courseName: "영어", code: "ENG-01", category: "NORMAL_SEASON", teacher: "이수진", capacity: 20, status: "PUBLISHED", subject: "영어", confirmedCount: 12, waitlistCount: 0 },
-  { id: 7, courseName: "수학 원업", code: "ONEUP-MATH", category: "ONE_UP", teacher: "박성호", capacity: 5, status: "PUBLISHED", subject: "수학", confirmedCount: 0, waitlistCount: 0 },
-  { id: 8, courseName: "확률과통계", code: "MATH-02", category: "NORMAL_SEASON", teacher: "박성호", capacity: 25, status: "PUBLISHED", subject: "수학", confirmedCount: 5, waitlistCount: 0 },
-  { id: 9, courseName: "수학", code: "MATH-01", category: "NORMAL_SEASON", teacher: "박성호", capacity: 25, status: "PUBLISHED", subject: "수학", confirmedCount: 20, waitlistCount: 2 },
-  { id: 10, courseName: "한국사", code: "HIST-01", category: "NORMAL_SEASON", teacher: "최은영", capacity: 15, status: "PUBLISHED", subject: "한국사", confirmedCount: 3, waitlistCount: 0 },
-  { id: 11, courseName: "사회문화", code: "SOC-01", category: "NORMAL_SEASON", teacher: "최은영", capacity: 15, status: "PUBLISHED", subject: "사탐", confirmedCount: 15, waitlistCount: 0 },
-  { id: 12, courseName: "물리학I", code: "SCI-01", category: "NORMAL_SEASON", teacher: "정태웅", capacity: 15, status: "PUBLISHED", subject: "과탐", confirmedCount: 3, waitlistCount: 0 },
-  { id: 13, courseName: "윤리와사상", code: "ETH-01", category: "NORMAL_SEASON", teacher: "김상현", capacity: 15, status: "PUBLISHED", subject: "사탐", confirmedCount: 0, waitlistCount: 0 },
-  { id: 14, courseName: "생명과학I", code: "SCI-02", category: "NORMAL_SEASON", teacher: "정태웅", capacity: 15, status: "PUBLISHED", subject: "과탐", confirmedCount: 0, waitlistCount: 0 },
-  { id: 15, courseName: "화학I", code: "SCI-03", category: "NORMAL_SEASON", teacher: "오승준", capacity: 15, status: "PUBLISHED", subject: "과탐", confirmedCount: 0, waitlistCount: 0 },
+  { id: 1, courseName: "여름방학 특강", code: "SPC-ALL", category: "SPECIAL", teacher: "김민철", capacity: 30, status: "PUBLISHED", subject: "종합", confirmedCount: 8, waitlistCount: 0, priceAmountPerSession: 36000, sessionCount: 4, packageTotal: 144000 },
+  { id: 2, courseName: "국어 원업", code: "ONEUP-KOR", category: "ONE_UP", teacher: "김민철", capacity: 5, status: "PUBLISHED", subject: "국어", confirmedCount: 2, waitlistCount: 0, priceAmountPerSession: 25000, sessionCount: 4, packageTotal: 100000 },
+  { id: 3, courseName: "국어", code: "KOR-01", category: "NORMAL_SEASON", teacher: "김민철", capacity: 20, status: "PUBLISHED", subject: "국어", confirmedCount: 11, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 4, courseName: "영어 원업", code: "ONEUP-ENG", category: "ONE_UP", teacher: "이수진", capacity: 5, status: "PUBLISHED", subject: "영어", confirmedCount: 3, waitlistCount: 0, priceAmountPerSession: 25000, sessionCount: 4, packageTotal: 100000 },
+  { id: 5, courseName: "영어 심화", code: "ENG-02", category: "NORMAL_SEASON", teacher: "이수진", capacity: 20, status: "PUBLISHED", subject: "영어", confirmedCount: 0, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 6, courseName: "영어", code: "ENG-01", category: "NORMAL_SEASON", teacher: "이수진", capacity: 20, status: "PUBLISHED", subject: "영어", confirmedCount: 12, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 7, courseName: "수학 원업", code: "ONEUP-MATH", category: "ONE_UP", teacher: "박성호", capacity: 5, status: "PUBLISHED", subject: "수학", confirmedCount: 0, waitlistCount: 0, priceAmountPerSession: 25000, sessionCount: 4, packageTotal: 100000 },
+  { id: 8, courseName: "확률과통계", code: "MATH-02", category: "NORMAL_SEASON", teacher: "박성호", capacity: 25, status: "PUBLISHED", subject: "수학", confirmedCount: 5, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 9, courseName: "수학", code: "MATH-01", category: "NORMAL_SEASON", teacher: "박성호", capacity: 25, status: "PUBLISHED", subject: "수학", confirmedCount: 20, waitlistCount: 2, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 10, courseName: "한국사", code: "HIST-01", category: "NORMAL_SEASON", teacher: "최은영", capacity: 15, status: "PUBLISHED", subject: "한국사", confirmedCount: 3, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 11, courseName: "사회문화", code: "SOC-01", category: "NORMAL_SEASON", teacher: "최은영", capacity: 15, status: "PUBLISHED", subject: "사탐", confirmedCount: 15, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 12, courseName: "물리학I", code: "SCI-01", category: "NORMAL_SEASON", teacher: "정태웅", capacity: 15, status: "PUBLISHED", subject: "과탐", confirmedCount: 3, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 13, courseName: "윤리와사상", code: "ETH-01", category: "NORMAL_SEASON", teacher: "김상현", capacity: 15, status: "PUBLISHED", subject: "사탐", confirmedCount: 0, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 14, courseName: "생명과학I", code: "SCI-02", category: "NORMAL_SEASON", teacher: "정태웅", capacity: 15, status: "PUBLISHED", subject: "과탐", confirmedCount: 0, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
+  { id: 15, courseName: "화학I", code: "SCI-03", category: "NORMAL_SEASON", teacher: "오승준", capacity: 15, status: "PUBLISHED", subject: "과탐", confirmedCount: 0, waitlistCount: 0, priceAmountPerSession: null, sessionCount: null, packageTotal: null },
 ];
 
 export const MOCK_REGISTRATIONS = [
-  { id: 1, offeringId: 1, status: "CONFIRMED", courseName: "국어", category: "NORMAL_SEASON", teacher: "김민철", waitlistSequence: null, enrolledAt: "2026-07-01" },
-  { id: 2, offeringId: 3, status: "CONFIRMED", courseName: "수학", category: "NORMAL_SEASON", teacher: "박성호", waitlistSequence: null, enrolledAt: "2026-07-01" },
+  { id: 1, offeringId: 3, status: "CONFIRMED", courseName: "국어", category: "NORMAL_SEASON", teacher: "김민철", waitlistSequence: null, enrolledAt: "2026-07-01" },
+  { id: 2, offeringId: 9, status: "CONFIRMED", courseName: "수학", category: "NORMAL_SEASON", teacher: "박성호", waitlistSequence: null, enrolledAt: "2026-07-01" },
 ];
 
 export const MOCK_SCHEDULE_DATA = [
   { id: 1, courseName: "국어", teacher: "김민철", category: "NORMAL_SEASON", room: "201호", capacity: 20, status: "PUBLISHED", subject: "국어", sessionDate: "2026-07-06", startTime: "09:00:00", endTime: "09:50:00" },
   { id: 3, courseName: "수학", teacher: "박성호", category: "NORMAL_SEASON", room: "301호", capacity: 25, status: "PUBLISHED", subject: "수학", sessionDate: "2026-07-06", startTime: "11:00:00", endTime: "11:50:00" },
+  { id: 1, courseName: "여름방학 특강", teacher: "김민철", category: "SPECIAL", room: "강당", capacity: 30, status: "PUBLISHED", subject: "종합", sessionDate: "2026-07-28", startTime: "15:00:00", endTime: "17:00:00" },
+];
+
+export const MOCK_ONEUP_STATUS = [
+  { registrationId: 90, courseName: "국어 원업", teacher: "김민철", status: "CONFIRMED", assignedDate: null, startTime: null, endTime: null },
+];
+
+export const MOCK_HISTORY = [
+  { batchId: 1, createdAt: new Date("2026-07-01T09:00:00"), disclosureText: "정규수업 2과목 신청 기준 CLASS A (1~3과목)에 해당하며, 추가 비용이 발생하지 않습니다.", items: [ { courseName: "국어", status: "CONFIRMED" }, { courseName: "수학", status: "CONFIRMED" } ] },
 ];
 
 export const MOCK_PERIOD = {
