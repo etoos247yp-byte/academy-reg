@@ -171,16 +171,16 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
               <p className="text-base font-bold text-[#d83b01]">{review.normalTierLabel}</p>
               <p className="mt-1 text-[#333]">{review.disclosureText}</p>
             </div>
-            <div className="mb-4 flex items-start gap-2 border-2 border-[#7a0000] p-3" style={{ background: "#a80000" }}>
-              <span className="text-base leading-5">⚠️</span>
-              <p className="text-base font-bold leading-6 text-white">
+            <div className="mb-4 flex items-start gap-2 border border-[#a80000] bg-[#fff0f0] p-3">
+              <span className="text-sm leading-5">⚠️</span>
+              <p className="text-sm font-semibold leading-5 text-[#a80000]">
                 수강확정기간({lockStatus.lockDays}일) 이후에는 현재 요금제 미만으로 변경할 수 없습니다.
               </p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => doConfirm(review.reviewToken)} disabled={loading}
                 className="flex-1 erp-btn-primary text-sm py-2 font-semibold">
-                {loading ? "처리중..." : `동의하고 신청하기 (월 ${review.normalTierMonthlySurcharge.toLocaleString()}원)`}
+                {loading ? "처리중..." : "동의하고 신청하기"}
               </button>
               <button onClick={() => { setShowAck(false); setReview(null); }}
                 className="erp-btn text-sm px-4">취소</button>
