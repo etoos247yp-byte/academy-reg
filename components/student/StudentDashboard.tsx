@@ -9,7 +9,7 @@ import { TimetableGrid, buildTimetableSessions } from "@/components/shared/Timet
 interface Offering { id: number; courseName: string; code: string; category: string; teacher: string | null; capacity: number; status: string; subject: string | null; confirmedCount: number; }
 interface Registration { id: number; offeringId: number; status: string; courseName: string; category: string; teacher: string | null; waitlistSequence: number | null; }
 interface ScheduleRow { id: number; courseName: string; teacher: string | null; category: string; room: string | null; status: string; subject: string | null; capacity: number; sessionDate: string | Date | null; startTime: string | null; endTime: string | null; }
-interface LockStatus { isLocked: boolean; lockedAt: Date | null; lockedTierLabel: string; lockedTierSurcharge: number; lockedNormalCount: number; currentNormalCount: number; }
+interface LockStatus { isLocked: boolean; lockedAt: Date | null; lockedTierLabel: string; lockedTierSurcharge: number; lockedNormalCount: number; currentNormalCount: number; lockDays: number; }
 interface Props { userId: number; periodId: number; offerings: Offering[]; registrations: Registration[]; scheduleData: ScheduleRow[]; periodName: string; windowClosesAt: Date | null; offeringSchedules: ScheduleRow[]; lockStatus: LockStatus; }
 
 const TABS = [{ key: "catalog", label: "수강 카탈로그" }, { key: "timetable", label: "내 시간표" }, { key: "my", label: "내 수강 목록" }];
@@ -167,15 +167,19 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
           <div className="w-full max-w-md erp-card p-6">
             <h2 className="text-base font-bold mb-3 border-b border-[#ccc] pb-2" style={{ color: "#2b5797" }}>추가 비용 안내</h2>
-            <div className="mb-4 border border-[#d83b01] bg-[#fff8f0] p-3 text-sm">
-              <p className="font-semibold text-[#d83b01]">{review.normalTierLabel}</p>
+            <div className="mb-3 border border-[#d83b01] bg-[#fff8f0] p-3 text-sm">
+              <p className="text-base font-bold text-[#d83b01]">{review.normalTierLabel}</p>
               <p className="mt-1 text-[#333]">{review.disclosureText}</p>
-              <p className="mt-2 text-xs text-[#666]">※ 수강확정기간(1주일) 이후에는 현재 요금제 미만으로 변경할 수 없습니다.</p>
+            </div>
+            <div className="mb-4 border-2 border-[#a80000] bg-[#fff0f0] p-3">
+              <p className="text-sm font-bold text-[#a80000]">
+                수강확정기간({lockStatus.lockDays}일) 이후에는 현재 요금제 미만으로 변경할 수 없습니다.
+              </p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => doConfirm(review.reviewToken)} disabled={loading}
                 className="flex-1 erp-btn-primary text-sm py-2 font-semibold">
-                {loading ? "처리중..." : `동의하고 신청하기 (${review.normalTierLabel})`}
+                {loading ? "처리중..." : `동의하고 신청하기 (월 ${review.normalTierMonthlySurcharge.toLocaleString()}원)`}
               </button>
               <button onClick={() => { setShowAck(false); setReview(null); }}
                 className="erp-btn text-sm px-4">취소</button>

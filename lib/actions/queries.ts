@@ -205,9 +205,9 @@ export async function getActiveRegistrationWindow() {
 }
 
 export async function getRegistrationLockStatus(userId: number) {
-  if (isTestMode()) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays: 7 };
+  if (isTestMode()) return { isLocked: false, lockedAt: null, lockedTierLabel: "CLASS A (1~3과목) · 무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays: 7 };
   const period = await getActivePeriod();
-  if (!period) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays: 7 };
+  if (!period) return { isLocked: false, lockedAt: null, lockedTierLabel: "CLASS A (1~3과목) · 무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays: 7 };
 
   // Determine lock days: per-student override → period default → 7
   let lockDays = period.lockDays ?? 7;
@@ -228,7 +228,7 @@ export async function getRegistrationLockStatus(userId: number) {
     .orderBy(schema.registrationBatches.createdAt)
     .limit(1);
 
-  if (!firstBatch) return { isLocked: false, lockedAt: null, lockedTierLabel: "무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays };
+  if (!firstBatch) return { isLocked: false, lockedAt: null, lockedTierLabel: "CLASS A (1~3과목) · 무료", lockedTierSurcharge: 0, lockedNormalCount: 0, currentNormalCount: 0, lockDays };
 
   const lockDate = new Date(firstBatch.createdAt.getTime() + lockDays * 24 * 60 * 60 * 1000);
   const isLocked = new Date() >= lockDate;

@@ -150,7 +150,7 @@ export function validateSelection(input: ValidateInput): SelectionReview {
 
 function buildDisclosureText(totalNormalCount: number, tier: ReturnType<typeof computeNormalTier>): string {
   if (tier.monthlySurcharge === 0) {
-    return `현재 ${totalNormalCount}과목 수강 예정이며 추가 비용은 없습니다.`;
+    return `정규수업 ${totalNormalCount}과목 신청 기준 ${tier.name} (${tier.rangeLabel}) 요금제가 적용되어 추가 비용이 발생하지 않습니다.`;
   }
-  return `현재 ${totalNormalCount}과목 수강 예정으로 월 ${tier.monthlySurcharge.toLocaleString()}원의 추가 비용이 발생합니다. 실제 청구는 floor(월 ${tier.monthlySurcharge.toLocaleString()}원 ÷ 29.4) × 수업일수로 계산됩니다.`;
+  return `정규수업 ${totalNormalCount}과목 신청 기준 ${tier.name} (${tier.rangeLabel}) 요금제가 적용됩니다. 추가 비용은 월 ${tier.monthlySurcharge.toLocaleString()}원을 기준으로 일할 계산되며, 시즌 전체 수강 기간에 해당하는 금액이 일괄 청구될 예정입니다.`;
 }

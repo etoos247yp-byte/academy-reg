@@ -2,6 +2,8 @@ export interface NormalTier {
   min: number;
   max: number;
   monthlySurcharge: number;
+  name: string;
+  rangeLabel: string;
   label: string;
   billingDivisor: number;
 }
@@ -9,26 +11,40 @@ export interface NormalTier {
 export const BILLING_DIVISOR = 29.4;
 
 export const NORMAL_TIERS: NormalTier[] = [
-  { min: 0, max: 3, monthlySurcharge: 0, label: "무료 (0~3과목)", billingDivisor: BILLING_DIVISOR },
+  {
+    min: 0,
+    max: 3,
+    monthlySurcharge: 0,
+    name: "CLASS A",
+    rangeLabel: "1~3과목",
+    label: "CLASS A (1~3과목) · 무료",
+    billingDivisor: BILLING_DIVISOR,
+  },
   {
     min: 4,
     max: 6,
     monthlySurcharge: 100_000,
-    label: "월 100,000원 (4~6과목)",
+    name: "CLASS B",
+    rangeLabel: "4~6과목",
+    label: "CLASS B (4~6과목) · 월 100,000원",
     billingDivisor: BILLING_DIVISOR,
   },
   {
     min: 7,
     max: 9,
     monthlySurcharge: 200_000,
-    label: "월 200,000원 (7~9과목)",
+    name: "CLASS C",
+    rangeLabel: "7~9과목",
+    label: "CLASS C (7~9과목) · 월 200,000원",
     billingDivisor: BILLING_DIVISOR,
   },
   {
     min: 10,
     max: Infinity,
     monthlySurcharge: 300_000,
-    label: "월 300,000원 (10과목 이상)",
+    name: "CLASS D",
+    rangeLabel: "10과목 이상",
+    label: "CLASS D (10과목 이상) · 월 300,000원",
     billingDivisor: BILLING_DIVISOR,
   },
 ];

@@ -105,6 +105,44 @@ describe("validateSelection", () => {
     expect(result.items[0].outcome).toBe("CONFIRMED");
   });
 
+  it("writes a plain-language disclosure for paid tiers: class name, monthly basis, season billed at once", () => {
+    const existing = [1, 2, 3].map((id) =>
+      makeConf(makeOffering({ id, courseName: `과목${id}`, sessions: [
+        { date: new Date("2026-03-02"), startTime: `0${8 + id}:00`, endTime: `0${9 + id}:00` },
+      ]})),
+    );
+    const newOffering = makeOffering({ id: 4, courseName: "과학", sessions: [
+      { date: new Date("2026-03-02"), startTime: "13:00", endTime: "14:00" },
+    ]});
+
+    const result = validateSelection({
+      offerings: new Map([[newOffering.id, newOffering]]),
+      existingRegistrations: existing,
+      selection: [{ offeringId: newOffering.id }],
+      registrationWindowOpen: true,
+    });
+
+    expect(result.disclosureText).toContain("CLASS B");
+    expect(result.disclosureText).toContain("월 100,000원");
+    expect(result.disclosureText).toContain("일할 계산");
+    expect(result.disclosureText).toContain("일괄 청구");
+    expect(result.disclosureText).not.toContain("floor");
+    expect(result.disclosureText).not.toContain("29.4");
+  });
+
+  it("writes a no-extra-cost disclosure naming CLASS A for the free tier", () => {
+    const offering = makeOffering();
+    const result = validateSelection({
+      offerings: new Map([[offering.id, offering]]),
+      existingRegistrations: [],
+      selection: [{ offeringId: offering.id }],
+      registrationWindowOpen: true,
+    });
+
+    expect(result.disclosureText).toContain("CLASS A");
+    expect(result.disclosureText).toContain("추가 비용");
+  });
+
   it("excludes non-normal categories from tier count", () => {
     const oneUp = makeOffering({ id: 10, category: "ONE_UP", courseName: "원업" });
     const special = makeOffering({ id: 11, category: "SPECIAL", courseName: "특강" });

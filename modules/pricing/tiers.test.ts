@@ -21,6 +21,17 @@ describe("NORMAL_TIERS", () => {
   it("tier 10+ costs 300,000", () => {
     expect(NORMAL_TIERS[3]).toMatchObject({ min: 10, max: Infinity, monthlySurcharge: 300_000 });
   });
+
+  it("names tiers CLASS A through D with their course ranges", () => {
+    expect(NORMAL_TIERS[0].name).toBe("CLASS A");
+    expect(NORMAL_TIERS[1].name).toBe("CLASS B");
+    expect(NORMAL_TIERS[2].name).toBe("CLASS C");
+    expect(NORMAL_TIERS[3].name).toBe("CLASS D");
+    expect(NORMAL_TIERS[0].label).toBe("CLASS A (1~3과목) · 무료");
+    expect(NORMAL_TIERS[1].label).toBe("CLASS B (4~6과목) · 월 100,000원");
+    expect(NORMAL_TIERS[2].label).toBe("CLASS C (7~9과목) · 월 200,000원");
+    expect(NORMAL_TIERS[3].label).toBe("CLASS D (10과목 이상) · 월 300,000원");
+  });
 });
 
 describe("computeNormalTier", () => {
