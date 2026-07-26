@@ -155,7 +155,7 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
       {deadlineText && <p className="text-sm font-medium text-[#d83b01] mt-1">{deadlineText}</p>}
       {lockText && (
         <p className="text-sm font-medium mt-1" style={{ color: "#2b5797" }}>
-          🔒 {lockText} · 잠금일: {lockStatus.lockedAt!.toLocaleDateString("ko-KR")}
+          {lockText} · 잠금일: {lockStatus.lockedAt!.toLocaleDateString("ko-KR")}
         </p>
       )}
 
@@ -171,10 +171,9 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
               <p className="text-base font-bold text-[#d83b01]">{review.normalTierLabel}</p>
               <p className="mt-1 text-[#333]">{review.disclosureText}</p>
             </div>
-            <div className="mb-4 flex items-start gap-2 border border-[#a80000] bg-[#fff0f0] p-3">
-              <span className="text-sm leading-5">⚠️</span>
+            <div className="mb-4 border border-[#a80000] bg-[#fff0f0] p-3">
               <p className="text-sm font-semibold leading-5 text-[#a80000]">
-                수강확정기간({lockStatus.lockDays}일) 이후에는 현재 요금제 미만으로 변경할 수 없습니다.
+                수강확정기간({lockStatus.lockDays}일) 이후에는 현재 CLASS 미만으로 변경할 수 없습니다.
               </p>
             </div>
             <div className="flex gap-2">
