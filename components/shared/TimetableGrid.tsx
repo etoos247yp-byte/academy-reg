@@ -150,92 +150,143 @@ interface MiniProps {
   pendingSessions: SessionCell[];
 }
 
-/** Compact sidebar week view: confirmed sessions solid, pending (selected) dashed. */
+type MiniCell = SessionCell & { pending: boolean; conflicted: boolean };
+
+/** One block per weekly slot: dated sessions repeat every week, so collapse them. */
+function dedupeWeekly(cells: (SessionCell & { pending: boolean })[]): (SessionCell & { pending: boolean })[] {
+  const seen = new Set<string>();
+  return cells.filter((c) => {
+    const key = `${c.courseName}|${c.col}|${c.startSlot}|${c.slotSpan}|${c.pending}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** Compact sidebar week view: confirmed sessions solid, pending (selected) dashed,
+ *  overlapping courses flagged red. Rows span only the hours actually in use. */
 export function MiniTimetableGrid({ sessions, pendingSessions }: MiniProps) {
-  const TIME_COL = 26;
+  const TIME_COL = 24;
   const COL_W = 49;
-  const SLOT_H = 13;
+  const SLOT_H = 17;
   const HDR = 20;
-  const height = HDR + TOTAL_SLOTS * SLOT_H;
   const width = TIME_COL + 5 * COL_W;
 
-  const all = [
+  const all: MiniCell[] = dedupeWeekly([
     ...sessions.map((s) => ({ ...s, pending: false })),
     ...pendingSessions.map((s) => ({ ...s, pending: true })),
-  ];
-  const positioned = buildPositions(all, COL_W) as (PositionedSession & { pending: boolean })[];
+  ]).map((s) => ({ ...s, conflicted: false }));
+
+  // Flag genuine time conflicts: different courses overlapping in the same column
+  for (let i = 0; i < all.length; i++) {
+    for (let j = i + 1; j < all.length; j++) {
+      const a = all[i], b = all[j];
+      if (a.col !== b.col || a.courseName === b.courseName) continue;
+      if (a.startSlot < b.startSlot + b.slotSpan && b.startSlot < a.startSlot + a.slotSpan) {
+        a.conflicted = true;
+        b.conflicted = true;
+      }
+    }
+  }
+
+  // Show only the hour range in use (rounded to full hours)
+  const first = Math.min(...all.map((s) => s.startSlot));
+  const last = Math.max(...all.map((s) => s.startSlot + s.slotSpan));
+  const minSlot = Math.max(0, first - (first % 2));
+  const maxSlot = Math.min(TOTAL_SLOTS, last + (last % 2));
+  const rowCount = Math.max(maxSlot - minSlot, 2);
+  const height = HDR + rowCount * SLOT_H;
+
+  const positioned = buildPositions(all, COL_W) as (PositionedSession & MiniCell)[];
+  const hasConflict = all.some((s) => s.conflicted);
 
   return (
-    <div style={{ border: "1px solid #bbb", background: "#fff", overflow: "hidden" }}>
-      <div style={{ width, height, position: "relative" }}>
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: HDR,
-          display: "flex", borderBottom: "1px solid #999", background: "#ddd",
-        }}>
-          <div style={{ width: TIME_COL, flexShrink: 0, borderRight: "1px solid #bbb" }} />
-          {DAYS.map((day, i) => (
-            <div key={day} style={{
-              width: COL_W, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 600, color: "#333",
-              borderRight: i < 4 ? "1px solid #bbb" : "none",
-            }}>{day}</div>
-          ))}
-        </div>
+    <div>
+      <div style={{ border: "1px solid #bbb", background: "#fff", overflow: "hidden" }}>
+        <div style={{ width, height, position: "relative" }}>
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, height: HDR,
+            display: "flex", borderBottom: "1px solid #999", background: "#ddd",
+          }}>
+            <div style={{ width: TIME_COL, flexShrink: 0, borderRight: "1px solid #bbb" }} />
+            {DAYS.map((day, i) => (
+              <div key={day} style={{
+                width: COL_W, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 600, color: "#333",
+                borderRight: i < 4 ? "1px solid #bbb" : "none",
+              }}>{day}</div>
+            ))}
+          </div>
 
-        {Array.from({ length: TOTAL_SLOTS }, (_, slot) => {
-          const isHour = slot % 2 === 0;
-          const showLabel = isHour && slot % 4 === 0;
-          const top = HDR + slot * SLOT_H;
-          return (
-            <div key={slot}>
-              <div style={{
-                position: "absolute", top, left: 0, width: TIME_COL, height: SLOT_H,
-                display: "flex", alignItems: "center", justifyContent: "flex-end",
-                paddingRight: 3, fontSize: 8, color: "#999",
-                borderRight: "1px solid #ccc",
-                borderBottom: isHour ? "1px solid #eee" : "none",
-                background: "#fafafa",
-              }}>
-                {showLabel ? String(START_HOUR + slot / 2).padStart(2, "0") : ""}
+          {Array.from({ length: rowCount }, (_, row) => {
+            const slot = minSlot + row;
+            const isHour = slot % 2 === 0;
+            const top = HDR + row * SLOT_H;
+            return (
+              <div key={slot}>
+                <div style={{
+                  position: "absolute", top, left: 0, width: TIME_COL, height: SLOT_H,
+                  display: "flex", alignItems: "center", justifyContent: "flex-end",
+                  paddingRight: 3, fontSize: 9, color: "#777",
+                  borderRight: "1px solid #ccc",
+                  borderBottom: isHour ? "1px solid #eee" : "none",
+                  background: "#fafafa",
+                }}>
+                  {isHour ? String(START_HOUR + slot / 2).padStart(2, "0") : ""}
+                </div>
+                {DAYS.map((_, col) => (
+                  <div key={col} style={{
+                    position: "absolute", top, left: TIME_COL + col * COL_W,
+                    width: COL_W, height: SLOT_H,
+                    borderRight: col < 4 ? "1px solid #f0f0f0" : "none",
+                    borderBottom: isHour ? "1px solid #f0f0f0" : "none",
+                  }} />
+                ))}
               </div>
-              {DAYS.map((_, col) => (
-                <div key={col} style={{
-                  position: "absolute", top, left: TIME_COL + col * COL_W,
-                  width: COL_W, height: SLOT_H,
-                  borderRight: col < 4 ? "1px solid #f0f0f0" : "none",
-                  borderBottom: isHour ? "1px solid #f0f0f0" : "none",
-                }} />
-              ))}
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {positioned.map((s, idx) => {
-          const colors = getCatColors(s.category);
-          const top = HDR + s.startSlot * SLOT_H;
-          const blockH = s.slotSpan * SLOT_H - 1;
-          const left = TIME_COL + s.col * COL_W + s.offsetX;
-          return (
-            <div key={idx}
-              title={`${s.courseName} ${s.startTime}~${s.endTime}${s.teacher ? ` · ${s.teacher}` : ""}`}
-              style={{
-                position: "absolute", top, left, height: blockH, width: s.width,
-                background: colors.bg,
-                border: `1px ${s.pending ? "dashed" : "solid"} ${colors.border}`,
-                opacity: s.pending ? 0.75 : 1,
-                overflow: "hidden", zIndex: 2,
-              }}>
-              {s.slotSpan >= 2 && (
+          {positioned.map((s, idx) => {
+            const colors = getCatColors(s.category);
+            const top = HDR + (s.startSlot - minSlot) * SLOT_H;
+            const blockH = s.slotSpan * SLOT_H - 1;
+            const left = TIME_COL + s.col * COL_W + s.offsetX;
+            const border = s.conflicted
+              ? `2px ${s.pending ? "dashed" : "solid"} #a80000`
+              : `1px ${s.pending ? "dashed" : "solid"} ${colors.border}`;
+            return (
+              <div key={idx}
+                title={`${s.courseName} ${s.startTime}~${s.endTime}${s.teacher ? ` · ${s.teacher}` : ""}${s.conflicted ? " · 시간 충돌" : ""}`}
+                style={{
+                  position: "absolute", top, left, height: blockH, width: s.width,
+                  background: s.conflicted ? "#fff0f0" : colors.bg,
+                  border,
+                  opacity: s.pending && !s.conflicted ? 0.8 : 1,
+                  overflow: "hidden", zIndex: s.conflicted ? 3 : 2,
+                }}>
                 <p style={{
-                  fontSize: 8, fontWeight: 700, color: colors.text, margin: 0,
-                  padding: "1px 2px", lineHeight: 1.2,
-                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  fontSize: 9, fontWeight: 700,
+                  color: s.conflicted ? "#a80000" : colors.text,
+                  margin: 0, padding: "2px 3px 0", lineHeight: 1.25,
+                  overflow: "hidden",
+                  display: "-webkit-box", WebkitLineClamp: s.slotSpan >= 3 ? 2 : 1, WebkitBoxOrient: "vertical",
+                  wordBreak: "break-all",
                 }}>{s.courseName}</p>
-              )}
-            </div>
-          );
-        })}
+                {s.slotSpan >= 4 && (
+                  <p style={{ fontSize: 8, color: "#666", margin: 0, padding: "0 3px", lineHeight: 1.3 }}>
+                    {s.startTime}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
+      {hasConflict && (
+        <p style={{ fontSize: 11, fontWeight: 600, color: "#a80000", margin: "6px 0 0" }}>
+          시간이 겹치는 수업이 있습니다. 선택을 확인해주세요.
+        </p>
+      )}
     </div>
   );
 }
@@ -258,31 +309,40 @@ function buildPositions(sessions: SessionCell[], colWidth: number): PositionedSe
 
   const result: PositionedSession[] = [];
 
-  for (const [col, colSessions] of byCol) {
-    // Sort by start slot
-    colSessions.sort((a, b) => a.startSlot - b.startSlot);
+  for (const colSessions of byCol.values()) {
+    colSessions.sort((a, b) => a.startSlot - b.startSlot || b.slotSpan - a.slotSpan);
 
-    // Find overlaps
-    const groups: SessionCell[][] = [];
+    // Split into clusters of transitively-overlapping sessions; sessions that
+    // merely follow each other in the day keep full width.
+    const clusters: SessionCell[][] = [];
+    let cluster: SessionCell[] = [];
+    let clusterEnd = -1;
     for (const s of colSessions) {
-      let placed = false;
-      for (const group of groups) {
-        const lastInGroup = group[group.length - 1];
-        if (s.startSlot >= lastInGroup.startSlot + lastInGroup.slotSpan) {
-          group.push(s);
-          placed = true;
-          break;
-        }
+      if (cluster.length > 0 && s.startSlot >= clusterEnd) {
+        clusters.push(cluster);
+        cluster = [];
       }
-      if (!placed) groups.push([s]);
+      cluster.push(s);
+      clusterEnd = Math.max(clusterEnd, s.startSlot + s.slotSpan);
     }
+    if (cluster.length > 0) clusters.push(cluster);
 
-    // For each overlapping group, stagger horizontally
-    for (const group of groups) {
-      const n = group.length;
-      const w = Math.floor((colWidth - 4) / n);
-      group.forEach((s, i) => {
-        result.push({ ...s, offsetX: i * w + 2, width: w - 2 });
+    // Within a cluster, assign lanes greedily and share the width across lanes
+    for (const cl of clusters) {
+      const laneEnds: number[] = [];
+      const lanes: number[] = [];
+      for (const s of cl) {
+        let lane = laneEnds.findIndex((end) => s.startSlot >= end);
+        if (lane === -1) {
+          lane = laneEnds.length;
+          laneEnds.push(0);
+        }
+        laneEnds[lane] = s.startSlot + s.slotSpan;
+        lanes.push(lane);
+      }
+      const w = Math.floor((colWidth - 4) / laneEnds.length);
+      cl.forEach((s, i) => {
+        result.push({ ...s, offsetX: lanes[i] * w + 2, width: w - 2 });
       });
     }
   }
@@ -295,6 +355,7 @@ export function buildTimetableSessions(rawSessions: {
   sessionDate: string | Date | null; startTime: string | null; endTime: string | null;
 }[]): SessionCell[] {
   const dayMap: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4 };
+  const seen = new Set<string>();
   return rawSessions
     .filter(s => s.sessionDate && s.startTime && s.endTime)
     .map(s => {
@@ -316,5 +377,12 @@ export function buildTimetableSessions(rawSessions: {
         startSlot, slotSpan, col,
       };
     })
-    .filter(s => s.col >= 0 && s.col < 5);
+    .filter(s => s.col >= 0 && s.col < 5)
+    // Dated sessions repeat weekly across the season — keep one block per weekly slot
+    .filter((s) => {
+      const key = `${s.courseName}|${s.col}|${s.startSlot}|${s.slotSpan}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
