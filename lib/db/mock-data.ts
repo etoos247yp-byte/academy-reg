@@ -38,8 +38,8 @@ export const MOCK_REGISTRATIONS = [
 ];
 
 export const MOCK_SCHEDULE_DATA = [
-  { id: 1, courseName: "국어", teacher: "김민철", category: "NORMAL_SEASON", room: "201호", capacity: 20, status: "PUBLISHED", subject: "국어", sessionDate: "2026-07-06", startTime: "09:00:00", endTime: "09:50:00" },
-  { id: 3, courseName: "수학", teacher: "박성호", category: "NORMAL_SEASON", room: "301호", capacity: 25, status: "PUBLISHED", subject: "수학", sessionDate: "2026-07-06", startTime: "11:00:00", endTime: "11:50:00" },
+  { id: 3, courseName: "국어", teacher: "김민철", category: "NORMAL_SEASON", room: "201호", capacity: 20, status: "PUBLISHED", subject: "국어", sessionDate: "2026-07-06", startTime: "09:00:00", endTime: "09:50:00" },
+  { id: 9, courseName: "수학", teacher: "박성호", category: "NORMAL_SEASON", room: "301호", capacity: 25, status: "PUBLISHED", subject: "수학", sessionDate: "2026-07-06", startTime: "11:00:00", endTime: "11:50:00" },
   { id: 1, courseName: "여름방학 특강", teacher: "김민철", category: "SPECIAL", room: "강당", capacity: 30, status: "PUBLISHED", subject: "종합", sessionDate: "2026-07-28", startTime: "15:00:00", endTime: "17:00:00" },
 ];
 
