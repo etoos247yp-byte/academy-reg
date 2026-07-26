@@ -327,7 +327,10 @@ function buildPositions(sessions: SessionCell[], colWidth: number): PositionedSe
     }
     if (cluster.length > 0) clusters.push(cluster);
 
-    // Within a cluster, assign lanes greedily and share the width across lanes
+    // Every block gets the full column width — a student cannot have two
+    // classes at the same time, so overlaps only appear transiently while
+    // selecting a conflicting course. Cascade those slightly so both stay
+    // visible until the conflict is resolved.
     for (const cl of clusters) {
       const laneEnds: number[] = [];
       const lanes: number[] = [];
@@ -340,9 +343,9 @@ function buildPositions(sessions: SessionCell[], colWidth: number): PositionedSe
         laneEnds[lane] = s.startSlot + s.slotSpan;
         lanes.push(lane);
       }
-      const w = Math.floor((colWidth - 4) / laneEnds.length);
       cl.forEach((s, i) => {
-        result.push({ ...s, offsetX: lanes[i] * w + 2, width: w - 2 });
+        const inset = lanes[i] * 8;
+        result.push({ ...s, offsetX: inset + 2, width: colWidth - 4 - inset });
       });
     }
   }
