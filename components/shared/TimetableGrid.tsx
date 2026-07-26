@@ -145,6 +145,101 @@ export function TimetableGrid({ sessions }: Props) {
   );
 }
 
+interface MiniProps {
+  sessions: SessionCell[];
+  pendingSessions: SessionCell[];
+}
+
+/** Compact sidebar week view: confirmed sessions solid, pending (selected) dashed. */
+export function MiniTimetableGrid({ sessions, pendingSessions }: MiniProps) {
+  const TIME_COL = 26;
+  const COL_W = 49;
+  const SLOT_H = 13;
+  const HDR = 20;
+  const height = HDR + TOTAL_SLOTS * SLOT_H;
+  const width = TIME_COL + 5 * COL_W;
+
+  const all = [
+    ...sessions.map((s) => ({ ...s, pending: false })),
+    ...pendingSessions.map((s) => ({ ...s, pending: true })),
+  ];
+  const positioned = buildPositions(all, COL_W) as (PositionedSession & { pending: boolean })[];
+
+  return (
+    <div style={{ border: "1px solid #bbb", background: "#fff", overflow: "hidden" }}>
+      <div style={{ width, height, position: "relative" }}>
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: HDR,
+          display: "flex", borderBottom: "1px solid #999", background: "#ddd",
+        }}>
+          <div style={{ width: TIME_COL, flexShrink: 0, borderRight: "1px solid #bbb" }} />
+          {DAYS.map((day, i) => (
+            <div key={day} style={{
+              width: COL_W, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 600, color: "#333",
+              borderRight: i < 4 ? "1px solid #bbb" : "none",
+            }}>{day}</div>
+          ))}
+        </div>
+
+        {Array.from({ length: TOTAL_SLOTS }, (_, slot) => {
+          const isHour = slot % 2 === 0;
+          const showLabel = isHour && slot % 4 === 0;
+          const top = HDR + slot * SLOT_H;
+          return (
+            <div key={slot}>
+              <div style={{
+                position: "absolute", top, left: 0, width: TIME_COL, height: SLOT_H,
+                display: "flex", alignItems: "center", justifyContent: "flex-end",
+                paddingRight: 3, fontSize: 8, color: "#999",
+                borderRight: "1px solid #ccc",
+                borderBottom: isHour ? "1px solid #eee" : "none",
+                background: "#fafafa",
+              }}>
+                {showLabel ? String(START_HOUR + slot / 2).padStart(2, "0") : ""}
+              </div>
+              {DAYS.map((_, col) => (
+                <div key={col} style={{
+                  position: "absolute", top, left: TIME_COL + col * COL_W,
+                  width: COL_W, height: SLOT_H,
+                  borderRight: col < 4 ? "1px solid #f0f0f0" : "none",
+                  borderBottom: isHour ? "1px solid #f0f0f0" : "none",
+                }} />
+              ))}
+            </div>
+          );
+        })}
+
+        {positioned.map((s, idx) => {
+          const colors = getCatColors(s.category);
+          const top = HDR + s.startSlot * SLOT_H;
+          const blockH = s.slotSpan * SLOT_H - 1;
+          const left = TIME_COL + s.col * COL_W + s.offsetX;
+          return (
+            <div key={idx}
+              title={`${s.courseName} ${s.startTime}~${s.endTime}${s.teacher ? ` · ${s.teacher}` : ""}`}
+              style={{
+                position: "absolute", top, left, height: blockH, width: s.width,
+                background: colors.bg,
+                border: `1px ${s.pending ? "dashed" : "solid"} ${colors.border}`,
+                opacity: s.pending ? 0.75 : 1,
+                overflow: "hidden", zIndex: 2,
+              }}>
+              {s.slotSpan >= 2 && (
+                <p style={{
+                  fontSize: 8, fontWeight: 700, color: colors.text, margin: 0,
+                  padding: "1px 2px", lineHeight: 1.2,
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                }}>{s.courseName}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Stagger overlapping sessions in the same column to avoid complete overlap */
 interface PositionedSession extends SessionCell {
   offsetX: number;

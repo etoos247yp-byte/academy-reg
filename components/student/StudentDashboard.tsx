@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { prepareSelectionAction, confirmSelectionAction } from "@/lib/actions/registration";
 import type { SelectionReview } from "@/modules/registration/domain/types";
-import { TimetableGrid, buildTimetableSessions } from "@/components/shared/TimetableGrid";
+import { TimetableGrid, MiniTimetableGrid, buildTimetableSessions } from "@/components/shared/TimetableGrid";
+import { computeNormalTier, NORMAL_TIERS } from "@/modules/pricing/tiers";
 
 interface Offering { id: number; courseName: string; code: string; category: string; teacher: string | null; capacity: number; status: string; subject: string | null; confirmedCount: number; }
 interface Registration { id: number; offeringId: number; status: string; courseName: string; category: string; teacher: string | null; waitlistSequence: number | null; }
@@ -73,6 +74,15 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
     }
     return buildTimetableSessions(merged);
   }, [scheduleData, selected, scheduleByOffering]);
+
+  // Sidebar mini timetable: confirmed sessions vs selected-but-unconfirmed sessions
+  const confirmedCells = useMemo(() => buildTimetableSessions(scheduleData), [scheduleData]);
+  const pendingCells = useMemo(() => {
+    const rows = [...selected].flatMap((id) => scheduleByOffering.get(id) ?? []);
+    return buildTimetableSessions(rows);
+  }, [selected, scheduleByOffering]);
+
+  const currentTier = useMemo(() => computeNormalTier(currentNormalInSelection), [currentNormalInSelection]);
 
   function toggleOffering(id: number) {
     if (registeredIds.has(id)) {
@@ -278,6 +288,53 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
                   className="w-full erp-btn-primary py-1.5 text-sm font-semibold disabled:opacity-50">
                   {loading ? "처리중..." : "신청하기"}
                 </button>
+              </div>
+
+              <div className="erp-card p-3">
+                <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>나의 CLASS</h3>
+                <div className="flex">
+                  {NORMAL_TIERS.map((t, i) => {
+                    const active = t.name === currentTier.name;
+                    return (
+                      <div key={t.name} className="flex-1 py-1 text-center text-xs border"
+                        style={{
+                          background: active ? "#336699" : "#f5f5f5",
+                          color: active ? "#fff" : "#999",
+                          fontWeight: active ? 700 : 400,
+                          borderColor: active ? "#2b5797" : "#ccc",
+                          marginLeft: i > 0 ? -1 : 0,
+                        }}>
+                        {t.name.replace("CLASS ", "")}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs font-semibold" style={{ color: "#2b5797" }}>{currentTier.label}</p>
+                <p className="mt-0.5 text-xs text-[#666]">
+                  정규수업 수강중 {currentNormalInSelection - selectedNormalCount}과목
+                  {selectedNormalCount > 0 ? ` + 선택 ${selectedNormalCount}과목 = 총 ${currentNormalInSelection}과목` : ""}
+                </p>
+              </div>
+
+              <div className="erp-card p-3">
+                <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>주간 시간표 미리보기</h3>
+                {confirmedCells.length === 0 && pendingCells.length === 0 ? (
+                  <p className="text-xs text-[#999]">표시할 수업 일정이 없습니다</p>
+                ) : (
+                  <>
+                    <MiniTimetableGrid sessions={confirmedCells} pendingSessions={pendingCells} />
+                    <div className="mt-2 flex items-center gap-3 text-xs text-[#666]">
+                      <span className="flex items-center gap-1">
+                        <span style={{ width: 10, height: 10, background: "#f0f5ff", border: "1px solid #336699", display: "inline-block" }} />
+                        수강중
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span style={{ width: 10, height: 10, background: "#fff", border: "1px dashed #336699", display: "inline-block" }} />
+                        선택중
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {review && (
