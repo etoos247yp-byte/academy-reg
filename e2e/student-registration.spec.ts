@@ -53,7 +53,7 @@ test.describe("Student Registration", () => {
   test("has my registrations tab", async ({ page }) => {
     await page.locator("button:has-text('내 수강 목록')").click();
     await page.waitForTimeout(300);
-    await expect(page.locator("text=국어").first()).toBeVisible();
-    await expect(page.locator("text=수학").first()).toBeVisible();
+    await expect(page.locator("table tbody tr", { hasText: "국어" }).first()).toBeVisible();
+    await expect(page.locator("table tbody tr", { hasText: "수학" }).first()).toBeVisible();
   });
 });
