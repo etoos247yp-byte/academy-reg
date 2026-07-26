@@ -6,33 +6,44 @@ import { prepareSelectionAction, confirmSelectionAction } from "@/lib/actions/re
 import type { SelectionReview } from "@/modules/registration/domain/types";
 import { TimetableGrid, MiniTimetableGrid, buildTimetableSessions } from "@/components/shared/TimetableGrid";
 import { computeNormalTier, NORMAL_TIERS } from "@/modules/pricing/tiers";
+import { ProgramCatalog } from "@/components/student/ProgramCatalog";
+import { SpecialSchedule } from "@/components/student/SpecialSchedule";
+import { OneUpStatus } from "@/components/student/OneUpStatus";
+import { MyRegistrations } from "@/components/student/MyRegistrations";
+import { HomeTab } from "@/components/student/HomeTab";
+import type { Offering, Registration, ScheduleRow, LockStatus, OneUpRow, HistoryBatch } from "@/components/student/types";
 
-interface Offering { id: number; courseName: string; code: string; category: string; teacher: string | null; capacity: number; status: string; subject: string | null; confirmedCount: number; }
-interface Registration { id: number; offeringId: number; status: string; courseName: string; category: string; teacher: string | null; waitlistSequence: number | null; }
-interface ScheduleRow { id: number; courseName: string; teacher: string | null; category: string; room: string | null; status: string; subject: string | null; capacity: number; sessionDate: string | Date | null; startTime: string | null; endTime: string | null; }
-interface LockStatus { isLocked: boolean; lockedAt: Date | null; lockedTierLabel: string; lockedTierSurcharge: number; lockedNormalCount: number; currentNormalCount: number; lockDays: number; }
-interface OneUpStatus { registrationId: number; courseName: string; teacher: string | null; status: string; assignedDate: string | null; startTime: string | null; endTime: string | null; }
-interface HistoryBatch { batchId: number; createdAt: string | Date; disclosureText: string | null; items: { courseName: string; status: string }[]; }
-interface Props { userId: number; periodId: number; offerings: Offering[]; registrations: Registration[]; scheduleData: ScheduleRow[]; periodName: string; windowClosesAt: Date | null; offeringSchedules: ScheduleRow[]; lockStatus: LockStatus; oneUpStatus: OneUpStatus[]; history: HistoryBatch[]; }
+interface Props {
+  userId: number;
+  periodId: number;
+  offerings: Offering[];
+  registrations: Registration[];
+  scheduleData: ScheduleRow[];
+  periodName: string;
+  windowClosesAt: Date | null;
+  offeringSchedules: ScheduleRow[];
+  lockStatus: LockStatus;
+  oneUpStatus: OneUpRow[];
+  history: HistoryBatch[];
+}
 
-const TABS = [{ key: "catalog", label: "수강 카탈로그" }, { key: "timetable", label: "내 시간표" }, { key: "my", label: "내 수강 목록" }];
-const CAT_FILTERS = [{ key: "all", label: "전체" }, { key: "NORMAL_SEASON", label: "정규수업" }, { key: "ONE_UP", label: "원업" }, { key: "SPECIAL", label: "특강" }, { key: "ESSAY_SPECIAL", label: "논술" }];
-const CAT_LABELS: Record<string, string> = { NORMAL_SEASON: "정규", ONE_UP: "원업", SPECIAL: "특강", ESSAY_SPECIAL: "논술", CUSTOM: "사용자정의" };
-
-function ft(t: string | null) { if (!t) return ""; return t.length >= 5 ? t.substring(0, 5) : t; }
-function fd(d: string | Date | null) { if (!d) return ""; const dt = typeof d === "string" ? new Date(d) : d; const days = ["일","월","화","수","목","금","토"]; return `${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]})`; }
+const TABS = [
+  { key: "home", label: "홈" },
+  { key: "normal", label: "정규수업" },
+  { key: "special", label: "특강" },
+  { key: "oneup", label: "원업" },
+  { key: "my", label: "내 수강 목록" },
+];
 
 export function StudentDashboard({ userId, periodId, offerings, registrations, scheduleData, periodName, windowClosesAt, offeringSchedules, lockStatus, oneUpStatus, history }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState("catalog");
-  const [catFilter, setCatFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("home");
+  const [normalView, setNormalView] = useState<"catalog" | "timetable">("catalog");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [review, setReview] = useState<SelectionReview | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showAck, setShowAck] = useState(false); // acknowledgment modal
 
   const registeredIds = useMemo(() => new Set(registrations.map(r => r.offeringId)), [registrations]);
@@ -57,31 +68,27 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
     }).length + selectedNormalCount;
   }, [registrations, selectedNormalCount]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return offerings.filter(o => {
-      if (o.status !== "PUBLISHED") return false;
-      if (catFilter !== "all" && o.category !== catFilter) return false;
-      if (q) { if (!o.courseName.toLowerCase().includes(q) && !o.code.toLowerCase().includes(q) && !(o.teacher ?? "").toLowerCase().includes(q)) return false; }
-      return true;
-    });
-  }, [offerings, catFilter, search]);
+  const confirmedNormalCount = useMemo(() => {
+    return registrations.filter(r => r.status === "CONFIRMED" && r.category === "NORMAL_SEASON").length;
+  }, [registrations]);
 
-  // Merge confirmed schedule + selected (pending) offerings for live timetable preview
-  const sessions = useMemo(() => {
+  // Merge confirmed schedule + selected (pending) offerings for the normal-tab full timetable,
+  // restricted to NORMAL_SEASON rows before building sessions.
+  const normalSessions = useMemo(() => {
     const merged = [...scheduleData];
     for (const id of selected) {
       const scheds = scheduleByOffering.get(id);
       if (scheds) merged.push(...scheds);
     }
-    return buildTimetableSessions(merged);
+    return buildTimetableSessions(merged.filter(s => s.category === "NORMAL_SEASON"));
   }, [scheduleData, selected, scheduleByOffering]);
 
-  // Sidebar mini timetable: confirmed sessions vs selected-but-unconfirmed sessions
-  const confirmedCells = useMemo(() => buildTimetableSessions(scheduleData), [scheduleData]);
+  // Sidebar mini timetable (normal tab only): confirmed sessions vs selected-but-unconfirmed sessions,
+  // restricted to NORMAL_SEASON rows before building sessions.
+  const confirmedCells = useMemo(() => buildTimetableSessions(scheduleData.filter(s => s.category === "NORMAL_SEASON")), [scheduleData]);
   const pendingCells = useMemo(() => {
     const rows = [...selected].flatMap((id) => scheduleByOffering.get(id) ?? []);
-    return buildTimetableSessions(rows);
+    return buildTimetableSessions(rows.filter(s => s.category === "NORMAL_SEASON"));
   }, [selected, scheduleByOffering]);
 
   const currentTier = useMemo(() => computeNormalTier(currentNormalInSelection), [currentNormalInSelection]);
@@ -204,192 +211,197 @@ export function StudentDashboard({ userId, periodId, offerings, registrations, s
         {TABS.map(t => tabBtn(t.key, t.label))}
       </div>
 
-      {tab === "catalog" && (
-        <div>
-          <div className="mb-3 space-y-2">
-            <input type="text" placeholder="수업명, 코드, 선생님으로 검색" value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full border border-[#adadad] px-3 py-1.5 text-sm outline-none focus:border-[#336699]" />
-            <div className="flex gap-0">
-              {CAT_FILTERS.map(f => (
-                <button key={f.key} onClick={() => setCatFilter(f.key)}
-                  className={`px-3 py-1 text-xs border ${catFilter === f.key ? "bg-white border-[#336699] text-[#336699] font-semibold" : "bg-[#e1e1e1] border-[#adadad] text-[#333] hover:bg-[#e5f1fb]"}`}>{f.label}</button>
-              ))}
+      {tab === "home" && (
+        <HomeTab
+          registrations={registrations}
+          scheduleData={scheduleData}
+          windowClosesAt={windowClosesAt}
+          lockStatus={lockStatus}
+          normalCount={confirmedNormalCount}
+          oneUpRows={oneUpStatus}
+          onGoTab={setTab}
+        />
+      )}
+
+      {tab === "normal" && (
+        <div className="grid gap-3 lg:grid-cols-[1fr_300px]">
+          <div>
+            <div className="mb-3 flex gap-0">
+              <button onClick={() => setNormalView("catalog")}
+                className={`px-4 py-1 text-sm border ${normalView === "catalog" ? "bg-white border-[#336699] text-[#336699] font-semibold" : "bg-[#e1e1e1] border-[#adadad] text-[#333] hover:bg-[#e5f1fb]"}`}>카탈로그</button>
+              <button onClick={() => setNormalView("timetable")}
+                className={`px-4 py-1 text-sm border ${normalView === "timetable" ? "bg-white border-[#336699] text-[#336699] font-semibold" : "bg-[#e1e1e1] border-[#adadad] text-[#333] hover:bg-[#e5f1fb]"}`}>전체 시간표</button>
             </div>
+
+            {normalView === "catalog" ? (
+              <ProgramCatalog
+                offerings={offerings.filter(o => o.category === "NORMAL_SEASON")}
+                registeredIds={registeredIds}
+                selected={selected}
+                loading={loading}
+                showPrice={false}
+                scheduleByOffering={scheduleByOffering}
+                onToggle={toggleOffering}
+                emptyText="정규수업이 없습니다"
+              />
+            ) : (
+              normalSessions.length === 0 ? (
+                <div className="erp-card p-8 text-center"><p className="text-sm text-[#999]">등록된 수업이 없습니다</p><p className="mt-1 text-xs text-[#aaa]">카탈로그에서 수업을 신청해주세요</p></div>
+              ) : <TimetableGrid sessions={normalSessions} />
+            )}
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[1fr_300px]">
-            <div className="grid gap-2 sm:grid-cols-2">
-              {filtered.map(o => {
-                const isReg = registeredIds.has(o.id);
-                const isSel = selected.has(o.id);
-                const full = o.confirmedCount >= o.capacity;
-                const seats = o.capacity - o.confirmedCount;
-                const isExpanded = expandedId === o.id;
-                const scheds = scheduleByOffering.get(o.id) ?? [];
-                const ratio = o.confirmedCount / Math.max(o.capacity, 1);
-                const seatColor = ratio >= 1 ? "#a80000" : ratio >= 0.8 ? "#d83b01" : "#107c10";
+          <div className="space-y-3">
+            <BasketCard offerings={offerings} selected={selected} loading={loading} onToggle={toggleOffering} onPrepare={handlePrepare} />
 
-                return (
-                  <div key={o.id} className={`erp-card p-3 ${isSel ? "border-[#336699] border-2" : ""} ${isReg ? "opacity-60" : "cursor-pointer hover:border-[#336699]"}`}>
-                    <div onClick={() => setExpandedId(isExpanded ? null : o.id)}>
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="text-xs text-[#666]">{o.code}</span>
-                            <span className="erp-badge text-xs">{CAT_LABELS[o.category] ?? o.category}</span>
-                          </div>
-                          <h3 className="font-semibold text-sm truncate">{o.courseName}</h3>
-                          <p className="text-xs text-[#666]">{o.teacher ?? "미정"}{o.subject ? ` · ${o.subject}` : ""}</p>
-                        </div>
-                        <button onClick={e => { e.stopPropagation(); toggleOffering(o.id); }} disabled={loading}
-                          className={`ml-2 shrink-0 px-3 py-1 text-xs border ${isReg ? "bg-[#eee] text-[#999] border-[#ccc] cursor-not-allowed" : isSel ? "bg-[#336699] text-white border-[#2b5797]" : full ? "bg-white text-[#d83b01] border-[#d83b01] hover:bg-[#fff8f0]" : "bg-[#e1e1e1] border-[#adadad] text-[#333] hover:bg-[#e5f1fb]"}`}>
-                          {isReg ? "수강중" : isSel ? "선택됨" : full ? "대기신청" : "선택"}
-                        </button>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="h-1 flex-1 border border-[#ccc] bg-[#eee]">
-                          <div className="h-full" style={{ width: `${Math.min(ratio*100, 100)}%`, background: seatColor }} />
-                        </div>
-                        <span className="text-xs font-semibold" style={{ color: seatColor }}>{seats <= 0 ? "마감" : `${seats}석`}</span>
-                      </div>
+            <div className="erp-card p-3">
+              <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>나의 CLASS</h3>
+              <div className="flex">
+                {NORMAL_TIERS.map((t, i) => {
+                  const active = t.name === currentTier.name;
+                  return (
+                    <div key={t.name} className="flex-1 py-1 text-center text-xs border"
+                      style={{
+                        background: active ? "#336699" : "#f5f5f5",
+                        color: active ? "#fff" : "#999",
+                        fontWeight: active ? 700 : 400,
+                        borderColor: active ? "#2b5797" : "#ccc",
+                        marginLeft: i > 0 ? -1 : 0,
+                      }}>
+                      {t.name.replace("CLASS ", "")}
                     </div>
-                    {isExpanded && (
-                      <div className="mt-2 border-t border-[#ccc] pt-2">
-                        {scheds.length > 0 ? (
-                          <table className="w-full text-xs">
-                            <thead><tr className="erp-header"><th className="p-1 text-left">날짜</th><th className="p-1 text-left">시간</th><th className="p-1 text-left">강의실</th></tr></thead>
-                            <tbody>
-                              {scheds.filter(s => s.sessionDate).map((s, i) => (
-                                <tr key={i}><td className="p-1">{fd(s.sessionDate)}</td><td className="p-1">{ft(s.startTime)} ~ {ft(s.endTime)}</td><td className="p-1 text-[#666]">{s.room ?? "-"}</td></tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : <p className="text-xs text-[#999]">일정 정보 없음</p>}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {filtered.length === 0 && <p className="text-sm text-[#999] col-span-2 py-8 text-center">{search ? "검색 결과가 없습니다" : "수업이 없습니다"}</p>}
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs font-semibold" style={{ color: "#2b5797" }}>{currentTier.label}</p>
+              <p className="mt-0.5 text-xs text-[#666]">
+                정규수업 수강중 {currentNormalInSelection - selectedNormalCount}과목
+                {selectedNormalCount > 0 ? ` + 선택 ${selectedNormalCount}과목 = 총 ${currentNormalInSelection}과목` : ""}
+              </p>
             </div>
 
-            <div className="space-y-3">
-              <div className="erp-card p-3">
-                <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>선택한 수업 ({selected.size}개)</h3>
-                {selected.size === 0 ? <p className="text-xs text-[#999]">수업을 선택해주세요</p> : (
-                  <ul className="space-y-1 mb-3">
-                    {offerings.filter(o => selected.has(o.id)).map(o => (
-                      <li key={o.id} className="flex justify-between text-xs py-1 border-b border-[#eee]">
-                        <span className="truncate">{o.courseName}</span>
-                        <button onClick={() => toggleOffering(o.id)} className="shrink-0 text-[#a80000] hover:underline text-xs">제거</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <button onClick={handlePrepare} disabled={selected.size === 0 || loading}
-                  className="w-full erp-btn-primary py-1.5 text-sm font-semibold disabled:opacity-50">
-                  {loading ? "처리중..." : "신청하기"}
-                </button>
-              </div>
-
-              <div className="erp-card p-3">
-                <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>나의 CLASS</h3>
-                <div className="flex">
-                  {NORMAL_TIERS.map((t, i) => {
-                    const active = t.name === currentTier.name;
-                    return (
-                      <div key={t.name} className="flex-1 py-1 text-center text-xs border"
-                        style={{
-                          background: active ? "#336699" : "#f5f5f5",
-                          color: active ? "#fff" : "#999",
-                          fontWeight: active ? 700 : 400,
-                          borderColor: active ? "#2b5797" : "#ccc",
-                          marginLeft: i > 0 ? -1 : 0,
-                        }}>
-                        {t.name.replace("CLASS ", "")}
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-2 text-xs font-semibold" style={{ color: "#2b5797" }}>{currentTier.label}</p>
-                <p className="mt-0.5 text-xs text-[#666]">
-                  정규수업 수강중 {currentNormalInSelection - selectedNormalCount}과목
-                  {selectedNormalCount > 0 ? ` + 선택 ${selectedNormalCount}과목 = 총 ${currentNormalInSelection}과목` : ""}
-                </p>
-              </div>
-
-              <div className="erp-card p-3">
-                <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>주간 시간표 미리보기</h3>
-                {confirmedCells.length === 0 && pendingCells.length === 0 ? (
-                  <p className="text-xs text-[#999]">표시할 수업 일정이 없습니다</p>
-                ) : (
-                  <>
-                    <MiniTimetableGrid sessions={confirmedCells} pendingSessions={pendingCells} />
-                    <div className="mt-2 flex items-center gap-3 text-xs text-[#666]">
-                      <span className="flex items-center gap-1">
-                        <span style={{ width: 10, height: 10, background: "#f0f5ff", border: "1px solid #336699", display: "inline-block" }} />
-                        수강중
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span style={{ width: 10, height: 10, background: "#fff", border: "1px dashed #336699", display: "inline-block" }} />
-                        선택중
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {review && (
-                <div className="erp-card p-3">
-                  <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>신청 확인</h3>
-                  <div className="mb-3 border border-[#336699] bg-[#f0f5ff] p-2 text-xs text-[#336699]">{review.disclosureText}</div>
-                  <table className="w-full text-xs">
-                    <thead><tr className="erp-header"><th className="p-1 text-left">수업명</th><th className="p-1 text-right">결과</th></tr></thead>
-                    <tbody>
-                      {review.items.map(item => (
-                        <tr key={item.offeringId}>
-                          <td className="p-1 truncate max-w-[180px]">{item.courseName}</td>
-                          <td className="p-1 text-right font-medium" style={{ color: item.outcome === "CONFIRMED" ? "#107c10" : item.outcome === "WAITLISTED" ? "#d83b01" : item.outcome === "SCHEDULE_PENDING" ? "#336699" : "#a80000" }}>
-                            {item.outcome === "CONFIRMED" ? "확정" : item.outcome === "WAITLISTED" ? "대기" : item.outcome === "SCHEDULE_PENDING" ? "시간배정필요" : "충돌"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            <div className="erp-card p-3">
+              <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>주간 시간표 미리보기</h3>
+              {confirmedCells.length === 0 && pendingCells.length === 0 ? (
+                <p className="text-xs text-[#999]">표시할 수업 일정이 없습니다</p>
+              ) : (
+                <>
+                  <MiniTimetableGrid sessions={confirmedCells} pendingSessions={pendingCells} />
+                  <div className="mt-2 flex items-center gap-3 text-xs text-[#666]">
+                    <span className="flex items-center gap-1">
+                      <span style={{ width: 10, height: 10, background: "#f0f5ff", border: "1px solid #336699", display: "inline-block" }} />
+                      수강중
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span style={{ width: 10, height: 10, background: "#fff", border: "1px dashed #336699", display: "inline-block" }} />
+                      선택중
+                    </span>
+                  </div>
+                </>
               )}
             </div>
+
+            <ReviewCard review={review} />
           </div>
         </div>
       )}
 
-      {tab === "timetable" && (
-        <div>
-          {sessions.length === 0 ? (
-            <div className="erp-card p-8 text-center"><p className="text-sm text-[#999]">등록된 수업이 없습니다</p><p className="mt-1 text-xs text-[#aaa]">수강 카탈로그에서 수업을 신청해주세요</p></div>
-          ) : <TimetableGrid sessions={sessions} />}
+      {tab === "special" && (
+        <div className="grid gap-3 lg:grid-cols-[1fr_300px]">
+          <div className="space-y-3">
+            <ProgramCatalog
+              offerings={offerings.filter(o => o.category === "SPECIAL" || o.category === "ESSAY_SPECIAL")}
+              registeredIds={registeredIds}
+              selected={selected}
+              loading={loading}
+              showPrice
+              scheduleByOffering={scheduleByOffering}
+              onToggle={toggleOffering}
+              emptyText="특강이 없습니다"
+            />
+            <SpecialSchedule scheduleData={scheduleData} />
+          </div>
+          <div className="space-y-3">
+            <BasketCard offerings={offerings} selected={selected} loading={loading} onToggle={toggleOffering} onPrepare={handlePrepare} />
+            <ReviewCard review={review} />
+          </div>
         </div>
       )}
 
-      {tab === "my" && (
-        <div className="erp-card overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead><tr className="erp-header"><th className="px-3 py-2">수업명</th><th className="px-3 py-2">선생님</th><th className="px-3 py-2">유형</th><th className="px-3 py-2">상태</th><th className="px-3 py-2">대기순번</th></tr></thead>
-            <tbody>
-              {registrations.map(r => (
-                <tr key={r.id} className="border-b border-[#e0e0e0] hover:bg-[#f8f8f8]">
-                  <td className="px-3 py-2 font-medium">{r.courseName}</td>
-                  <td className="px-3 py-2 text-[#666]">{r.teacher ?? "-"}</td>
-                  <td className="px-3 py-2 text-xs text-[#666]">{CAT_LABELS[r.category] ?? r.category}</td>
-                  <td className="px-3 py-2"><span className={r.status === "CONFIRMED" ? "erp-badge erp-badge-ok" : "erp-badge erp-badge-warn"}>{r.status === "CONFIRMED" ? "확정" : "대기"}</span></td>
-                  <td className="px-3 py-2 text-[#666]">{r.waitlistSequence ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {registrations.length === 0 && <p className="px-4 py-8 text-center text-sm text-[#999]">수강 내역이 없습니다</p>}
+      {tab === "oneup" && (
+        <div className="grid gap-3 lg:grid-cols-[1fr_300px]">
+          <div className="space-y-3">
+            <ProgramCatalog
+              offerings={offerings.filter(o => o.category === "ONE_UP")}
+              registeredIds={registeredIds}
+              selected={selected}
+              loading={loading}
+              showPrice
+              scheduleByOffering={scheduleByOffering}
+              onToggle={toggleOffering}
+              emptyText="원업 수업이 없습니다"
+            />
+            <OneUpStatus rows={oneUpStatus} />
+          </div>
+          <div className="space-y-3">
+            <BasketCard offerings={offerings} selected={selected} loading={loading} onToggle={toggleOffering} onPrepare={handlePrepare} />
+            <ReviewCard review={review} />
+          </div>
         </div>
       )}
+
+      {tab === "my" && <MyRegistrations registrations={registrations} history={history} />}
+    </div>
+  );
+}
+
+function BasketCard({ offerings, selected, loading, onToggle, onPrepare }: {
+  offerings: Offering[];
+  selected: Set<number>;
+  loading: boolean;
+  onToggle: (id: number) => void;
+  onPrepare: () => void;
+}) {
+  return (
+    <div className="erp-card p-3">
+      <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>선택한 수업 ({selected.size}개)</h3>
+      {selected.size === 0 ? <p className="text-xs text-[#999]">수업을 선택해주세요</p> : (
+        <ul className="space-y-1 mb-3">
+          {offerings.filter(o => selected.has(o.id)).map(o => (
+            <li key={o.id} className="flex justify-between text-xs py-1 border-b border-[#eee]">
+              <span className="truncate">{o.courseName}</span>
+              <button onClick={() => onToggle(o.id)} className="shrink-0 text-[#a80000] hover:underline text-xs">제거</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button onClick={onPrepare} disabled={selected.size === 0 || loading}
+        className="w-full erp-btn-primary py-1.5 text-sm font-semibold disabled:opacity-50">
+        {loading ? "처리중..." : "신청하기"}
+      </button>
+    </div>
+  );
+}
+
+function ReviewCard({ review }: { review: SelectionReview | null }) {
+  if (!review) return null;
+  return (
+    <div className="erp-card p-3">
+      <h3 className="mb-2 font-semibold text-sm" style={{ borderBottom: "1px solid #ccc", paddingBottom: "6px" }}>신청 확인</h3>
+      <div className="mb-3 border border-[#336699] bg-[#f0f5ff] p-2 text-xs text-[#336699]">{review.disclosureText}</div>
+      <table className="w-full text-xs">
+        <thead><tr className="erp-header"><th className="p-1 text-left">수업명</th><th className="p-1 text-right">결과</th></tr></thead>
+        <tbody>
+          {review.items.map(item => (
+            <tr key={item.offeringId}>
+              <td className="p-1 truncate max-w-[180px]">{item.courseName}</td>
+              <td className="p-1 text-right font-medium" style={{ color: item.outcome === "CONFIRMED" ? "#107c10" : item.outcome === "WAITLISTED" ? "#d83b01" : item.outcome === "SCHEDULE_PENDING" ? "#336699" : "#a80000" }}>
+                {item.outcome === "CONFIRMED" ? "확정" : item.outcome === "WAITLISTED" ? "대기" : item.outcome === "SCHEDULE_PENDING" ? "시간배정필요" : "충돌"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
